@@ -20,7 +20,7 @@ import { DaidTokenContext } from '../App'
 function Dapp() {
   const [web3State, login] = useContext(Web3Context)
   const daidToken = useContext(DaidTokenContext)
-  const [isLoading, setIsLoading] = useState(false)
+  const [setIsLoading] = useState(false)
   const [tokenBalance, setTokenBalance] = useState(0)
   const [deliveryBalance, setDeliveryBalance] = useState(0)
 
@@ -50,7 +50,7 @@ function Dapp() {
         daidToken.off(userFilter, cb)
       }
     }
-  }, [setTokenBalance, daidToken, web3State.account])
+  }, [setTokenBalance, setIsLoading, daidToken, web3State.account])
 
   return (
     <>
