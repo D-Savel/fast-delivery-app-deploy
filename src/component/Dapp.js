@@ -20,7 +20,8 @@ import { DaidTokenContext } from '../App'
 function Dapp() {
   const [web3State, login] = useContext(Web3Context)
   const daidToken = useContext(DaidTokenContext)
-  const [setIsLoading] = useState(false)
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setIsLoading] = useState(false)
   const [tokenBalance, setTokenBalance] = useState(0)
   const [deliveryBalance, setDeliveryBalance] = useState(0)
 
