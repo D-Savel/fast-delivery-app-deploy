@@ -1,49 +1,57 @@
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import {
   Badge,
   Box,
-  Text,
-  Flex,
-  VStack,
+  VStack
 } from '@chakra-ui/react'
-
+import { DaidTokenContext } from '../App'
 import { Web3Context } from 'web3-hooks'
-// import { SmartWordsContext } from '../App'
 
-function User(props) {
-  const { tokenBalance, deliveryBalance } = props
+function User() {
   const [web3State] = useContext(Web3Context)
+  const daidToken = useContext(DaidTokenContext)
+  const roundedBalance = Math.round(web3State.balance * 100000000000) / 100000000000
+  // eslint-disable-next-line no-unused-vars
+  const [isLoading, setIsLoading] = useState(false)
+  const [tokenBalance, setTokenBalance] = useState(0)
+
+  useEffect(() => {
+    if (daidToken) {
+      const getTokenBalance = async () => {
+        try {
+          setIsLoading(true)
+          const getTokenBalance = await daidToken.balanceOf(web3State.account)
+          setTokenBalance(Number(getTokenBalance))
+        } catch (e) {
+          console.log(e)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      const cb = (from, to, tokenId) => {
+        getTokenBalance()
+      }
+      getTokenBalance()
+      const userFilter = daidToken.filters.Transfer(null, web3State.account)
+      // ecouter sur l'event DataSet avec le filter eveFilter appliqué
+      daidToken.on(userFilter, cb)
+      return () => {
+        // arreter d'ecouter lorsque le component sera unmount
+        daidToken.off(userFilter, cb)
+      }
+    }
+  }, [setTokenBalance, daidToken, web3State.account])
 
   return (
-    <VStack py="1" align="center">
-      <Box mr="1">
-        <Badge maxW="sx" p="1" fontSize="13" borderRadius="md" textTransform="capitalize"> Address : {' '}
-          {
-            web3State.isLogged ? <Badge borderRadius="lg" fontSize="12" mx="1" px="2" variant="solid" color="white" colorScheme="blue">{web3State.account}</Badge>
-              : <Badge mx="1" px="2" variant="solid" colorScheme="red">0X0000........00000</Badge>
-          }
-        </Badge>
+    <VStack py="1" align="end">
+      <Box>
+        {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pr="1" pt="1" variant="solid" colorScheme="blue">{roundedBalance} ETH</Badge>
+          : <Badge borderRadius="lg" fontSize="14" mb="1" px="2" pt="1" variant="solid" colorScheme="red">{roundedBalance} ETH</Badge>}
       </Box>
-      <Flex maxW="sx" direction="column">
-        <Flex direction="row" justify="space-around" pb="2">
-          <Text color="white" as="b" fontSize="17">Balance</Text>
-          <Badge mx="2" py="1" fontSize="13" borderRadius="md" textTransform="capitalize">Ether(s):{' '}
-            {web3State.provider ? <Badge borderRadius="lg" fontSize="13" mx="2" px="2" variant="solid" colorScheme="blue">{web3State.balance}</Badge>
-              : <Badge borderRadius="lg" mx="2" py="1" px="2" variant="solid" colorScheme="red">{web3State.balance}</Badge>}
-          </Badge>
 
-        </Flex>
-        <Flex direction="row" justify="space-around" pb="2">
-          <Badge mx="2" py="1" fontSize="13" borderRadius="md" textTransform="capitalize">Token(s):{' '}
-            {web3State.provider ? <Badge borderRadius="lg" fontSize="13" mx="2" px="2" variant="solid" colorScheme="blue">{tokenBalance} DAID</Badge>
-              : <Badge borderRadius="lg" mx="2" py="1" px="2" variant="solid" colorScheme="red">{tokenBalance}</Badge>}
-          </Badge>
-          <Badge mx="2" py="1" fontSize="13" borderRadius="md" textTransform="capitalize">{deliveryBalance < 2 ? `Delivery : ` : `Deliveries: `}
-            {web3State.provider ? <Badge borderRadius="lg" fontSize="13" mx="2" px="2" variant="solid" colorScheme="blue">{deliveryBalance}</Badge>
-              : <Badge borderRadius="lg" mx="2" py="1" px="2" variant="solid" colorScheme="red">{deliveryBalance}</Badge>}
-          </Badge>
-        </Flex>
-      </Flex>
+      <Box> {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="blue">{tokenBalance} DAID</Badge>
+        : <Badge borderRadius="lg" mr="1" px="2" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{tokenBalance}</Badge>}
+      </Box>
     </VStack>
   )
 }

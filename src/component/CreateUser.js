@@ -19,20 +19,21 @@ import {
 import axios from 'axios'
 import { FastDeliveryUserContext } from '../App'
 import { Web3Context } from 'web3-hooks'
+import { useIsMounted } from "../hooks/useIsMounted";
 
-function CreateUser() {
+function CreateUser(props) {
+  const { userAddress, setUserAddress, userProfil } = props
   const [web3State] = useContext(Web3Context)
+  const fastDeliveryUser = useContext(FastDeliveryUserContext)
+  const isMounted = useIsMounted()
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isAdress, setIsAddress] = useState(true);
-  const [isRegistered, setIsRegistered] = useState(false);
-
-  const fastDeliveryUser = useContext(FastDeliveryUserContext)
   const [isLoading, setIsLoading] = useState(false)
-  const [userProfil, setUserProfil] = useState('Choose your profil')
+  const [currentProfil, setCurrentProfil] = useState(userProfil)
+  const [web3Address, setWeb3Address] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [userAddress, setUserAddress] = useState('');
   const [addressX, setaddressX] = useState('')
   const [addressY, setaddressY] = useState('')
   const [companySiren, setCompanySiren] = useState('')
@@ -42,7 +43,7 @@ function CreateUser() {
   const toast = useToast()
 
   useEffect(() => {
-    let url = `http://localhost:3333/address/?address=${userAddress}`
+    let url = `https://stormy-gorge-78325.herokuapp.com/address/?address=${userAddress}`
     console.log(url, 'url')
     const request = async () => {
       setLoading(true)
@@ -62,17 +63,14 @@ function CreateUser() {
     }
     request()
   }
-    , [userAddress])
+    , [userAddress, isMounted])
 
   const handleClickRegister = async (e) => {
     e.preventDefault()
     if (firstName && lastName && addressX && addressY && tel && mail && isAdress) {
       try {
         setIsLoading(true)
-        let tx
-        userProfil === "Sender" ?
-          tx = await fastDeliveryUser.parcelSenderRegister(firstName, lastName, userAddress, addressX, addressY, addressInfo, tel, mail) :
-          tx = await fastDeliveryUser.deliverymanRegister(firstName, lastName, userAddress, addressX, addressY, companySiren, addressInfo, tel, mail)
+        let tx = await fastDeliveryUser.userRegister(currentProfil, firstName, lastName, userAddress, addressX, addressY, companySiren, addressInfo, tel, mail)
         console.log(tx)
         await tx.wait()
         toast({
@@ -112,18 +110,10 @@ function CreateUser() {
       const getUserInfo = async () => {
         try {
           const userInfo = await fastDeliveryUser.getUserInfo(web3State.account)
-          if (userInfo[0] !== "0x0000000000000000000000000000000000000000") {
-            setUserProfil("Sender")
-            setIsRegistered(true)
-          }
-          if (userInfo[1] !== "0x0000000000000000000000000000000000000000") {
-            setUserProfil("Deliveryman")
-            setIsRegistered(true)
-          }
-          if (userInfo[0] === "0x0000000000000000000000000000000000000000" && userInfo[1] === "0x0000000000000000000000000000000000000000") {
-            setUserProfil("")
-            setIsRegistered(false)
-          }
+          if (userInfo[0] === 0) { setCurrentProfil("0") }
+          if (userInfo[0] === 1) { setCurrentProfil("parcelSender") }
+          if (userInfo[0] === 2) { setCurrentProfil("deliveryman") }
+          setWeb3Address(userInfo[1])
           setFirstName(userInfo[2])
           setLastName(userInfo[3])
           setUserAddress(userInfo[4])
@@ -136,19 +126,18 @@ function CreateUser() {
         }
       }
       getUserInfo()
-
     }
-  }, [fastDeliveryUser, web3State.account])
+  }, [fastDeliveryUser, web3State.account, setUserAddress])
 
 
   return (
 
-    <Flex direction="column" align="center" justify="center" pb="5" m="1">
+    <Flex direction="column" align="center" justify="center" m="1">
       <Center w="420px" color="blue" p="1">
         <Heading size="xl">Fast Delivery register</Heading>
       </Center>
       <Center w="420px" p="1">
-        <Heading size="sm">{userProfil && ('You are already registered with this profil !')}</Heading>
+        <Heading size="sm">{userProfil !== "0" && web3Address !== "0x0000000000000000000000000000000000000000" && ('You are already registered with this profil !')}</Heading>
       </Center>
       <Box m="2" border="1px" borderRadius="lg" w="sm" bg="blue.500" borderColor="blue.300">
         <Box m="2" as="form">
@@ -158,21 +147,21 @@ function CreateUser() {
               size="sm"
               borderRadius="lg"
               bg="light"
-              onChange={(event) => setUserProfil(event.target.value)}
-              value={userProfil}
+              onChange={(event) => setCurrentProfil(event.target.value)}
+              value={currentProfil}
               placeholder="Select your profil">
-              <option value="Sender">Sender</option>
-              <option value="Deliveryman">Deliveryman</option>
+              <option value="parcelSender">Sender</option>
+              <option value="deliveryman">Deliveryman</option>
             </Select>
           </FormControl>
         </Box>
       </Box>
-      {userProfil && (
+      {currentProfil !== "0" && currentProfil !== "" && (
         <VStack >
           <Box border="1px" borderRadius="lg" w="sm" bg="blue.500" borderColor="blue.300">
             <Box m="2" as="form">
               <FormControl isRequired>
-                <FormLabel my="0" htmlFor="firstName">{userProfil === "Sender" ? 'First name' : 'Manager first name'}</FormLabel>
+                <FormLabel my="0" htmlFor="firstName">{currentProfil === "parcelSender" ? 'First name' : 'Manager first name'}</FormLabel>
                 <Input
                   size="sm"
                   borderRadius="lg"
@@ -184,7 +173,7 @@ function CreateUser() {
                   isInvalid={firstName === "" ? true : false} />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel pt="1" my="0" htmlFor="lastName">{userProfil === "Sender" ? 'Last name' : 'Manager last name'}</FormLabel>
+                <FormLabel pt="1" my="0" htmlFor="lastName">{currentProfil === "parcelSender" ? 'Last name' : 'Manager last name'}</FormLabel>
                 <Input
                   size="sm"
                   borderRadius="lg"
@@ -196,7 +185,7 @@ function CreateUser() {
                   isInvalid={lastName === "" ? true : false} />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel pt="1" my="0" htmlFor="address">{userProfil === "Sender" ? 'Address' : 'Company address'}</FormLabel>
+                <FormLabel pt="1" my="0" htmlFor="address">{currentProfil === "parcelSender" ? 'Address' : 'Company address'}</FormLabel>
                 <Input
                   size="sm"
                   borderRadius="lg"
@@ -235,7 +224,7 @@ function CreateUser() {
                   </List>
                 }
               </FormControl>
-              {userProfil !== "Sender" && (<FormControl isRequired>
+              {currentProfil !== "parcelSender" && (<FormControl isRequired>
                 <FormLabel pt="0" my="1" htmlFor="companySirenNumber">Company Siren Number</FormLabel>
                 <Input
                   size="sm"
@@ -290,20 +279,19 @@ function CreateUser() {
               </FormControl>
             </Box>
           </Box>
-          <Box py="2">
+          <Box>
             <Button
-              size="md"
+              size="sm"
               borderRadius="lg"
               type="submit"
               isLoading={isLoading}
               colorScheme="blue"
               onClick={handleClickRegister} >
-              {isRegistered ? 'Update' : 'Register'}
+              {web3Address !== "0x0000000000000000000000000000000000000000" ? 'Update' : 'Register'}
             </Button>
           </Box>
         </VStack>
-      )
-      }
+      )}
     </Flex>
   )
 }

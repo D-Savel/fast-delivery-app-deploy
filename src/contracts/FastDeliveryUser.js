@@ -1,69 +1,10 @@
-export const FastDeliveryUserAddress = '0x810aBb21901a75aB173E57fF9Cf1222bb8bd0B2C'
+export const FastDeliveryUserAddress = '0x71Cc2dA51F6F099b67Dbc68E2262990610B2e268'
 
 export const FastDeliveryUserAbi = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "firstName_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "lastName_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "addressDeliveryman_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "addressXDeliveryman_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "addressYDeliveryman_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "companySiren_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "addressInfo_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "tel_",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "mail_",
-        "type": "string"
-      }
-    ],
-    "name": "deliverymanRegister",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
   },
   {
     "inputs": [
@@ -78,13 +19,13 @@ export const FastDeliveryUserAbi = [
       {
         "components": [
           {
-            "internalType": "address",
-            "name": "parcelSender",
-            "type": "address"
+            "internalType": "enum FastDeliveryUser.UserProfil",
+            "name": "profil",
+            "type": "uint8"
           },
           {
             "internalType": "address",
-            "name": "deliveryman",
+            "name": "userWeb3Address",
             "type": "address"
           },
           {
@@ -157,9 +98,9 @@ export const FastDeliveryUserAbi = [
     "name": "getUserType",
     "outputs": [
       {
-        "internalType": "string",
+        "internalType": "enum FastDeliveryUser.UserProfil",
         "name": "",
-        "type": "string"
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -167,6 +108,11 @@ export const FastDeliveryUserAbi = [
   },
   {
     "inputs": [
+      {
+        "internalType": "string",
+        "name": "profil_",
+        "type": "string"
+      },
       {
         "internalType": "string",
         "name": "firstName_",
@@ -194,6 +140,11 @@ export const FastDeliveryUserAbi = [
       },
       {
         "internalType": "string",
+        "name": "companySiren_",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
         "name": "addressInfo_",
         "type": "string"
       },
@@ -208,7 +159,7 @@ export const FastDeliveryUserAbi = [
         "type": "string"
       }
     ],
-    "name": "parcelSenderRegister",
+    "name": "userRegister",
     "outputs": [
       {
         "internalType": "bool",
