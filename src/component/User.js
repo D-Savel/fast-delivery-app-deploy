@@ -10,7 +10,7 @@ import { Web3Context } from 'web3-hooks'
 function User() {
   const [web3State] = useContext(Web3Context)
   const daidToken = useContext(DaidTokenContext)
-  const roundedBalance = Math.round(web3State.balance * 100000000000) / 100000000000
+  const roundedBalance = Math.round(web3State.balance * 1000000000) / 1000000000
   // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false)
   const [tokenBalance, setTokenBalance] = useState(0)
@@ -50,7 +50,7 @@ function User() {
       </Box>
 
       <Box> {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="blue">{tokenBalance} DAID</Badge>
-        : <Badge borderRadius="lg" mr="1" px="2" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{tokenBalance}</Badge>}
+        : <Badge borderRadius="lg" mr="1" px="2" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{tokenBalance} DAID</Badge>}
       </Box>
     </VStack>
   )

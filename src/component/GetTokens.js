@@ -83,14 +83,14 @@ function GetTokens() {
       <Center border="1px" borderRadius="lg" borderColor="dark" bg="blue.500" w="sm" color="white" my="3" p="1">
         <Heading size="lg" >Get DAID Tokens</Heading>
       </Center>
-      <Box pb="3"
+      <Box p="3"
         display="flex"
         justifyContent="center"
         alignItems="center"
         border="1px"
         borderRadius="lg"
         borderColor="blue"
-        w="sm"
+        maxW="sm"
       >
         <VStack   >
           <Text
@@ -117,7 +117,7 @@ function GetTokens() {
       <Center fontSize="16" as="b" borderRadius="lg" borderColor="blue" w="sm" color="blue">
         {delay}
       </Center>
-    </Flex>
+    </Flex >
   )
 }
 

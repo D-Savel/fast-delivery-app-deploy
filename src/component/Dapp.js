@@ -19,7 +19,7 @@ import CreateUser from './CreateUser'
 function Dapp() {
   const [web3State, login] = useContext(Web3Context)
   const [userAddress, setUserAddress] = useState('')
-  const [userProfil, setUserProfil] = useState("0")
+  const [userProfil, setUserProfil] = useState('')
 
   return (
     <>
@@ -36,7 +36,7 @@ function Dapp() {
           {!web3State.isLogged ?
             <>
               <Center px="2" mt="10" mb="5" w="75%" py="12" bg="red.500" fontSize="20" color="white">Vous devez vous connecter à MetaMask sur le TestNet Kovan</Center>
-              <Button colorScheme="orange" onClick={login}>login MetaMask</Button>)
+              <Button colorScheme="orange" onClick={login}>login MetaMask</Button>
             </> :
             <Switch>
               <Route path='/Home'>

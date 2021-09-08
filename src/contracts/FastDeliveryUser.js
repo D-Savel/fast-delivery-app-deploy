@@ -1,4 +1,4 @@
-export const FastDeliveryUserAddress = '0x71Cc2dA51F6F099b67Dbc68E2262990610B2e268'
+export const FastDeliveryUserAddress = '0x3d417b6a2D3f9187ff946BD9Cb7ebB5A642bEFB6'
 
 export const FastDeliveryUserAbi = [
   {
@@ -22,11 +22,6 @@ export const FastDeliveryUserAbi = [
             "internalType": "enum FastDeliveryUser.UserProfil",
             "name": "profil",
             "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "userWeb3Address",
-            "type": "address"
           },
           {
             "internalType": "string",

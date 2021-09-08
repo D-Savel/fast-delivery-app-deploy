@@ -31,7 +31,7 @@ function CreateUser(props) {
   const [isAdress, setIsAddress] = useState(true);
   const [isLoading, setIsLoading] = useState(false)
   const [currentProfil, setCurrentProfil] = useState(userProfil)
-  const [web3Address, setWeb3Address] = useState('')
+  const [firstRegistration, setFirstRegistration] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [addressX, setaddressX] = useState('')
@@ -52,8 +52,8 @@ function CreateUser(props) {
         setSearchResults(response.data)
         if (response.data.length) {
           userAddress.toUpperCase().trim().localeCompare(response.data[0].adresse.trim()) === 0 ? setIsAddress(true) : setIsAddress(false)
-          setaddressX(response.data[0].x.toString())
-          setaddressY(response.data[0].y.toString())
+          setaddressX(response.data[0].lon.toString())
+          setaddressY(response.data[0].lat.toString())
         }
       } catch (e) {
         console.log(e)
@@ -67,7 +67,7 @@ function CreateUser(props) {
 
   const handleClickRegister = async (e) => {
     e.preventDefault()
-    if (firstName && lastName && addressX && addressY && tel && mail && isAdress) {
+    if (isAdress) {
       try {
         setIsLoading(true)
         let tx = await fastDeliveryUser.userRegister(currentProfil, firstName, lastName, userAddress, addressX, addressY, companySiren, addressInfo, tel, mail)
@@ -94,6 +94,7 @@ function CreateUser(props) {
         console.log(e)
       } finally {
         setIsLoading(false)
+        setFirstRegistration(false)
       }
     } else {
       toast({
@@ -110,24 +111,26 @@ function CreateUser(props) {
       const getUserInfo = async () => {
         try {
           const userInfo = await fastDeliveryUser.getUserInfo(web3State.account)
-          if (userInfo[0] === 0) { setCurrentProfil("0") }
-          if (userInfo[0] === 1) { setCurrentProfil("parcelSender") }
-          if (userInfo[0] === 2) { setCurrentProfil("deliveryman") }
-          setWeb3Address(userInfo[1])
-          setFirstName(userInfo[2])
-          setLastName(userInfo[3])
-          setUserAddress(userInfo[4])
-          setCompanySiren(userInfo[7])
-          setAddressInfo(userInfo[8])
-          setTel(userInfo[9])
-          setMail(userInfo[10])
+          if (userInfo.profil === 0) {
+            setCurrentProfil("0")
+            setFirstRegistration(true)
+          }
+          if (userInfo.profil === 1) { setCurrentProfil("parcelSender") }
+          if (userInfo.profil === 2) { setCurrentProfil("deliveryman") }
+          setFirstName(userInfo.firstName)
+          setLastName(userInfo.lastName)
+          setUserAddress(userInfo.userAddress)
+          setCompanySiren(userInfo.companySiren)
+          setAddressInfo(userInfo.addressInfo)
+          setTel(userInfo.tel)
+          setMail(userInfo.mail)
         } catch (e) {
           console.log(e)
         }
       }
       getUserInfo()
     }
-  }, [fastDeliveryUser, web3State.account, setUserAddress])
+  }, [fastDeliveryUser, web3State.account, setUserAddress, setCurrentProfil])
 
 
   return (
@@ -137,7 +140,7 @@ function CreateUser(props) {
         <Heading size="xl">Fast Delivery register</Heading>
       </Center>
       <Center w="420px" p="1">
-        <Heading size="sm">{userProfil !== "0" && web3Address !== "0x0000000000000000000000000000000000000000" && ('You are already registered with this profil !')}</Heading>
+        <Heading size="sm">{firstRegistration !== true && ('You are already registered with this profil !')}</Heading>
       </Center>
       <Box m="2" border="1px" borderRadius="lg" w="sm" bg="blue.500" borderColor="blue.300">
         <Box m="2" as="form">
@@ -149,6 +152,7 @@ function CreateUser(props) {
               bg="light"
               onChange={(event) => setCurrentProfil(event.target.value)}
               value={currentProfil}
+              disabled={currentProfil !== "0" && firstRegistration !== true ? true : false}
               placeholder="Select your profil">
               <option value="parcelSender">Sender</option>
               <option value="deliveryman">Deliveryman</option>
@@ -159,9 +163,9 @@ function CreateUser(props) {
       {currentProfil !== "0" && currentProfil !== "" && (
         <VStack >
           <Box border="1px" borderRadius="lg" w="sm" bg="blue.500" borderColor="blue.300">
-            <Box m="2" as="form">
+            <Box m="2" as="form" onSubmit={handleClickRegister}>
               <FormControl isRequired>
-                <FormLabel my="0" htmlFor="firstName">{currentProfil === "parcelSender" ? 'First name' : 'Manager first name'}</FormLabel>
+                <FormLabel my="0" htmlFor="firstName">{currentProfil === "parcelSender" ? 'First name' : 'Manager name'}</FormLabel>
                 <Input
                   size="sm"
                   borderRadius="lg"
@@ -173,7 +177,7 @@ function CreateUser(props) {
                   isInvalid={firstName === "" ? true : false} />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel pt="1" my="0" htmlFor="lastName">{currentProfil === "parcelSender" ? 'Last name' : 'Manager last name'}</FormLabel>
+                <FormLabel pt="1" my="0" htmlFor="lastName">{currentProfil === "parcelSender" ? 'Last name' : 'Company name'}</FormLabel>
                 <Input
                   size="sm"
                   borderRadius="lg"
@@ -269,6 +273,7 @@ function CreateUser(props) {
                   type="email"
                   id="email"
                   size="sm"
+                  mb="5"
                   borderRadius="lg"
                   bg="light"
                   placeholder="bob@mail.com"
@@ -277,18 +282,18 @@ function CreateUser(props) {
                   isInvalid={mail === "" ? true : false}
                 />
               </FormControl>
+              <Box align="center">
+                <Button justify="center"
+                  size="sm"
+                  borderRadius="lg"
+                  type="submit"
+                  isLoading={isLoading}
+                  colorScheme="teal"
+                >
+                  {firstRegistration !== true ? 'Update' : 'Register'}
+                </Button>
+              </Box>
             </Box>
-          </Box>
-          <Box>
-            <Button
-              size="sm"
-              borderRadius="lg"
-              type="submit"
-              isLoading={isLoading}
-              colorScheme="blue"
-              onClick={handleClickRegister} >
-              {web3Address !== "0x0000000000000000000000000000000000000000" ? 'Update' : 'Register'}
-            </Button>
           </Box>
         </VStack>
       )}

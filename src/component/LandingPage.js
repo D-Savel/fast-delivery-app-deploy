@@ -28,7 +28,7 @@ function LandingPage(props) {
 
   return (
     <>
-      {userProfil === 'parcelSender' && (<ParcelSenderBoard />)}
+      {userProfil === 'parcelSender' && (<ParcelSenderBoard userAddress={userAddress} setUserAddress={setUserAddress} userProfil={userProfil} setUserProfil={setUserProfil} />)}
       {userProfil === 'deliveryman' && (<p> Deliveryman Page </p>)}
       {userProfil === '0' && (<CreateUser userAddress={userAddress} setUserAddress={setUserAddress} userProfil={userProfil} setUserProfil={setUserProfil} />)}
     </>
