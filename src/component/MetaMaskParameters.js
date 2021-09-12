@@ -20,8 +20,8 @@ function MetaMaskParameters(props) {
         }
       </HStack>
       {
-        web3State.isLogged ? <Badge borderRadius="lg" fontSize="14" mb="1" px="1" pt="1" variant="solid" color="white" colorScheme="blue">{web3State.account.slice(0, 5)}...{web3State.account.slice(-5)}</Badge>
-          : <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{web3State.account.slice(0, 5)}...{web3State.account.slice(-5)}</Badge>
+        web3State.isLogged ? <Badge borderRadius="lg" fontSize="14" mb="1" px="1" pt="1" variant="solid" color="white" colorScheme="blue">{web3State.account.slice(0, 5)}..{web3State.account.slice(-5)}</Badge>
+          : <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{web3State.account.slice(0, 5)}..{web3State.account.slice(-5)}</Badge>
       }
     </VStack>
   )

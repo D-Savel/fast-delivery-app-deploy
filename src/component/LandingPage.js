@@ -1,6 +1,7 @@
 import { useContext, useEffect } from 'react'
 import CreateUser from './CreateUser'
 import ParcelSenderBoard from './ParcelSenderBoard'
+import DeliverymanBoard from './DeliverymanBoard'
 import { FastDeliveryUserContext } from '../App'
 import { Web3Context } from 'web3-hooks'
 
@@ -28,8 +29,8 @@ function LandingPage(props) {
 
   return (
     <>
-      {userProfil === 'parcelSender' && (<ParcelSenderBoard userAddress={userAddress} setUserAddress={setUserAddress} userProfil={userProfil} setUserProfil={setUserProfil} />)}
-      {userProfil === 'deliveryman' && (<p> Deliveryman Page </p>)}
+      {userProfil === 'parcelSender' && (<ParcelSenderBoard />)}
+      {userProfil === 'deliveryman' && (<DeliverymanBoard />)}
       {userProfil === '0' && (<CreateUser userAddress={userAddress} setUserAddress={setUserAddress} userProfil={userProfil} setUserProfil={setUserProfil} />)}
     </>
   )

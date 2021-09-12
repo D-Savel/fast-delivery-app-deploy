@@ -1,4 +1,4 @@
-export const FastDeliveryNftAddress = '0x7c0e7b59cD5fAbaD5640651748792C799d5C94E9'
+export const FastDeliveryNftAddress = '0xc09D022AA16F0c98271b315FAd704031d7254277'
 
 export const FastDeliveryNftAbi = [
   {
@@ -116,42 +116,42 @@ export const FastDeliveryNftAbi = [
           },
           {
             "internalType": "string",
-            "name": "firstNameRecipient",
+            "name": "recipientFirstName",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "lastNameRecipient",
+            "name": "recipientLastName",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "addressXRecipient",
+            "name": "recipientAddress",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "addressYRecipient",
+            "name": "recipientAddressX",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "addressInfoRecipient",
+            "name": "recipientAddressY",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "telRecipient",
+            "name": "recipientAddressInfo",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "mailRecipient",
+            "name": "recipientTel",
             "type": "string"
           },
           {
             "internalType": "string",
-            "name": "deliveryDay",
+            "name": "recipientMail",
             "type": "string"
           },
           {
@@ -161,8 +161,13 @@ export const FastDeliveryNftAbi = [
           },
           {
             "internalType": "string",
-            "name": "deliveryCode",
+            "name": "deliveryDistance",
             "type": "string"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "deliveryCode",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -276,9 +281,9 @@ export const FastDeliveryNftAbi = [
         "type": "uint256"
       },
       {
-        "internalType": "string",
+        "internalType": "bytes32",
         "name": "deliverycode_",
-        "type": "string"
+        "type": "bytes32"
       }
     ],
     "name": "collectDelivery",
@@ -296,48 +301,53 @@ export const FastDeliveryNftAbi = [
     "inputs": [
       {
         "internalType": "string",
-        "name": "firstNameRecipient_",
+        "name": "recipientFirstName_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "lastNameRecipient_",
+        "name": "recipientLastName_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "addressXRecipient_",
+        "name": "recipientAddress_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "addressYRecipient_",
+        "name": "recipientAddressX_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "addressInfoRecipient_",
+        "name": "recipientAddressY_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "telRecipient_",
+        "name": "recipientAddressInfo_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "mailRecipient_",
+        "name": "recipientTel_",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "deliveryDay_",
+        "name": "recipientMail_",
         "type": "string"
       },
       {
         "internalType": "uint256",
         "name": "deliveryAmount_",
         "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "deliveryDistance_",
+        "type": "string"
       }
     ],
     "name": "createDelivery",
@@ -427,6 +437,45 @@ export const FastDeliveryNftAbi = [
         "internalType": "uint256[]",
         "name": "",
         "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getProfitBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getUserDeliveriesAmountBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getlastId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

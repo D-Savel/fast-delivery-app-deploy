@@ -1,9 +1,10 @@
 import { useRef, useContext, useState, useEffect } from 'react'
 import { getDistance } from 'ol/sphere';
+import { utils, ethers } from 'ethers'
+import { Random } from 'random-js'
 import {
   Popover,
   PopoverTrigger,
-  PopoverHeader,
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
@@ -20,7 +21,10 @@ import {
   VStack,
   useToast,
   Input,
+  InputGroup,
+  InputRightElement,
   Spacer,
+  HStack,
   Divider
 } from '@chakra-ui/react'
 
@@ -30,11 +34,12 @@ import { FastDeliveryUserContext } from '../App'
 import { DaidTokenContext } from '../App'
 import { Web3Context } from 'web3-hooks'
 import { useIsMounted } from "../hooks/useIsMounted";
+require('dotenv').config();
 
-function ParcelSender() {
+function ParcelSenderBoard() {
 
   const DELIVERY_PRICE = {
-    _0_2: 0,
+    _0_2: 1,
     _2_5: 2,
     _5_8: 3,
     _8_10: 4
@@ -43,14 +48,27 @@ function ParcelSender() {
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const daidToken = useContext(DaidTokenContext)
-
   const isMounted = useIsMounted()
-  const [loading, setLoading] = useState(false);
+
+  /* unused no fetch for sender
+  const [loadingUser, setLoadingUser] = useState(false);
+   */
+  const [loadingRecipient, setLoadingRecipient] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
+  const [loadingApprove, setLoadingApprove] = useState(false);
+  const [isApprove, setIsApprove] = useState(false)
+
+  /* unused no fetch for sender
   const [searchResultsSender, setSearchResultsSender] = useState([]);
+  */
+
   const [searchResultsRecipient, setSearchResultsRecipient] = useState([]);
+
+  /* unused no fetch for sender
   const [isSenderAddress, setIsSenderAddress] = useState(true);
-  const [isRecipientAddress, setIsRecipientAddress] = useState(true);
+   */
+
+  const [isRecipientAddress, setIsRecipientAddress] = useState(false);
   const [isLoading, setIsLoading] = useState(false)
 
   const [displayAddDelivery, setDisplayAddDelivery] = useState(false)
@@ -63,12 +81,8 @@ function ParcelSender() {
   const [recipientAddressInfo, setRecipientAddressInfo] = useState('')
   const [recipientTel, setRecipientTel] = useState('')
   const [recipientMail, setRecipientMail] = useState('')
-  const [deliveryPrice, setDeliveryPrice] = useState(0)
-  const [deliveryDistance, setDeliveryDistance] = useState('')
-  // eslint-disable-next-line no-unused-vars
-  const [deliveryTimestamp, setDeliveryTimestamp] = useState(0)
-  // eslint-disable-next-line no-unused-vars
-  const [deliveryStatus, setDeliveryStatus] = useState(0)
+  const [deliveryPrice, setDeliveryPrice] = useState('-')
+  const [deliveryDistance, setDeliveryDistance] = useState('-')
 
   const [senderFirstName, setSenderFirstName] = useState('')
   const [senderLastName, setSenderLastName] = useState('')
@@ -81,11 +95,34 @@ function ParcelSender() {
 
   const [deliveryIdSender, setDeliveryIdSender] = useState([])
   const [deliveriesList, setDeliveriesList] = useState([])
+  const [idSelect, setIdSelect] = useState()
 
   const toast = useToast()
   const searchInputSender = useRef(null)
   const searchInputRecipient = useRef(null)
 
+
+  // verify allowance amount for user
+  useEffect(() => {
+    if (daidToken) {
+      const getAllowance = async () => {
+        try {
+          const _allowance = await daidToken.allowance(web3State.account, "0xc09D022AA16F0c98271b315FAd704031d7254277")
+          const allowance = ethers.utils.formatEther(_allowance)
+          Number(allowance) < deliveryPrice ? setIsApprove(false) : setIsApprove(true)
+        } catch (e) {
+          console.log(e.message)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      getAllowance()
+    }
+  }, [daidToken, web3State.account, deliveryPrice, setIsApprove, isApprove])
+
+
+
+  // fetch User Info
   useEffect(() => {
     if (fastDeliveryUser) {
       const getUserInfo = async () => {
@@ -94,24 +131,50 @@ function ParcelSender() {
           setSenderFirstName(userInfo.firstName)
           setSenderLastName(userInfo.lastName)
           setSenderAddress(userInfo.userAddress)
+          setSenderAddressX(userInfo.addressX)
+          setSenderAddressY(userInfo.addressY)
           setSenderTel(userInfo.tel)
           setSenderMail(userInfo.mail)
         } catch (e) {
-          console.log(e)
+          console.log(e.message)
         }
       }
       getUserInfo()
     }
   }, [fastDeliveryUser, web3State.account, setSenderAddress])
 
+  // fetch all delivery id for user
   useEffect(() => {
+    if (fastDeliveryNft | displayAddDelivery === false) {
+      const getDeliveryId = async () => {
+        try {
+          const id = await fastDeliveryNft.getDeliveriesIdByAddress(web3State.account)
+          setDeliveryIdSender(id)
+        } catch (e) {
+          console.log(e.message)
+        }
+      }
+      getDeliveryId()
+    }
+  }, [displayAddDelivery, fastDeliveryNft, web3State.account])
+
+  // fetch deliveries an create an array of deliveries for user
+  useEffect(() => {
+    const deliveryStatusEnum = {
+      0: "onLine",
+      1: "attributed",
+      2: "inDelivery",
+      3: "delivered",
+      4: "deleted"
+    }
     let list = []
-    let header = {
-      id: "id",
+    let listHeader = {
+      id: "Id",
       senderFirstName: "Sender",
       recipientFirstName: "Recipient",
       deliveryAmount: "Price",
-      deliveryDistance: "D.(Km)",
+      deliveryDistance: "D.",
+      deliverymanCompany: "Deliveryman",
       deliveryStatus: "Status",
       timestamp: "Date"
     }
@@ -120,35 +183,76 @@ function ParcelSender() {
         setLoadingList(true)
         try {
           for (let id of deliveryIdSender) {
-            const deliveryInfo = await fastDeliveryNft.DeliveryInfo(id)
-            let timestamp = "10/08/20"
+            let idNumber = Number(id)
+            let DeliveryDateStatus
+            let DeliveryStatusInfo
+            const deliveryInfo = await fastDeliveryNft.DeliveryInfo(idNumber)
+            switch (deliveryInfo.status) {
+              case 0:
+                DeliveryDateStatus = new Date(Number(deliveryInfo.onlineTimestamp * 1000))
+                DeliveryStatusInfo = deliveryStatusEnum[0]
+                break;
+              case 1:
+                DeliveryDateStatus = new Date(Number(deliveryInfo.attributionTimestamp * 1000))
+                DeliveryStatusInfo = deliveryStatusEnum[1]
+                break;
+              case 2:
+                DeliveryDateStatus = new Date(Number(deliveryInfo.collectTimestamp * 1000))
+                DeliveryStatusInfo = deliveryStatusEnum[2]
+                break;
+              case 3:
+                DeliveryDateStatus = new Date(Number(deliveryInfo.deliveredTimestamp * 1000))
+                DeliveryStatusInfo = deliveryStatusEnum[3]
+                break;
+              case 4:
+                DeliveryDateStatus = new Date(Number(deliveryInfo.onlineTimestamp * 1000))
+                DeliveryStatusInfo = deliveryStatusEnum[3]
+                break;
+              default:
+                DeliveryDateStatus = "Date Error"
+                DeliveryStatusInfo = "Status Error"
+            }
+            let web3AddressDeliveryman = deliveryInfo.deliveryman
+            let deliverymanInfo
+            if (web3AddressDeliveryman !== "0x0000000000000000000000000000000000000000") {
+              deliverymanInfo = await fastDeliveryUser.getUserInfo(web3AddressDeliveryman)
+            } else {
+              deliverymanInfo = { lastName: "-" }
+            }
             const deliveries = {
-              id: id,
+              id: idNumber,
               senderFirstName: senderFirstName,
               senderLastName: senderLastName,
               senderAddress: senderAddress,
               senderAddressInfo: senderAddressInfo,
               senderTel: senderTel,
               senderMail: senderMail,
-              recipientFirstName: deliveryInfo.recipientFirstName,
-              recipientLastName: deliveryInfo.recipientLastName,
-              recipientAddress: deliveryInfo.recipientAddress,
-              recipientAddressInfo: deliveryInfo.recipientAddressInfo,
-              recipientTel: deliveryInfo.recipientTel,
-              recipientMail: deliveryInfo.recipientMail,
-              deliveryAmount: Number(deliveryInfo.deliveryAmount),
+              recipientFirstName: deliveryInfo[3],
+              recipientLastName: deliveryInfo[4],
+              recipientAddress: deliveryInfo[5],
+              recipientAddressInfo: deliveryInfo[8],
+              recipientTel: deliveryInfo[9],
+              recipientMail: deliveryInfo[10],
+              deliverymanCompany: deliverymanInfo.lastName,
+              deliverymanManagerName: deliverymanInfo.firstName,
+              deliverymanAddress: deliverymanInfo.userAddress,
+              deliverymanTel: deliverymanInfo[8],
+              deliverymanMail: deliverymanInfo[9],
+              deliveryAmount: ethers.utils.formatEther(deliveryInfo.deliveryAmount),
               deliveryDistance: deliveryInfo.deliveryDistance,
-              deliveryStatus: deliveryInfo.status,
-              timestamp: timestamp
+              deliveryStatus: DeliveryStatusInfo,
+              timestamp: ("0" + DeliveryDateStatus.getDate()).slice(-2) + "-" + ("0" + (DeliveryDateStatus.getMonth() + 1)).slice(-2) + "-" +
+                DeliveryDateStatus.getFullYear() + " " + ("0" + DeliveryDateStatus.getHours()).slice(-2) + ":" + ("0" + DeliveryDateStatus.getMinutes()).slice(-2)
             }
             list.push(deliveries)
           }
-          list
-            .reverse()
-            .unshift(header)
+          if (list.length > 0)
+            list
+              .reverse()
+              .unshift(listHeader)
           setDeliveriesList(list)
         } catch (e) {
-          console.log(e)
+          console.log(e.message)
         } finally {
           setLoadingList(false)
         }
@@ -156,28 +260,17 @@ function ParcelSender() {
       getDeliveriesList()
     }
   }
-    , [deliveryIdSender, fastDeliveryNft, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel])
+    , [deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel])
 
-  useEffect(() => {
-    if (fastDeliveryNft) {
-      const getdeliveryId = async () => {
-        try {
-          const id = await fastDeliveryNft.getDeliveriesIdByAddress(web3State.account)
-          setDeliveryIdSender([1, 2])
-          console.log(id)
-        } catch (e) {
-          console.log(e)
-        }
-      }
-      getdeliveryId()
-    }
-  }, [fastDeliveryNft, web3State.account])
 
+  /* unused no fetch for sender
+  
+  // fetch address for sender input
   useEffect(() => {
-    let url = `http://localhost:3333//address/?address=${senderAddress}`
+    let url = `https://stormy-gorge-78325.herokuapp.com/address/?address=${senderAddress}`
     console.log(url, 'url Sender search')
     const request = async () => {
-      setLoading(true)
+      setLoadingUser(true)
       try {
         let response = await axios.get(url)
         setSearchResultsSender(response.data)
@@ -189,14 +282,19 @@ function ParcelSender() {
       } catch (e) {
         console.log(e)
       } finally {
-        setLoading(false)
+        setLoadingUser(false)
       }
     }
     request()
   }
     , [senderAddress, isMounted])
+    */
 
+  // Calculate distance and price for delivery with delivery distance
   useEffect(() => {
+    if (isRecipientAddress) {
+      setDeliveryDistance((Math.round((getDistance([senderAddressX, senderAddressY], [recipientAddressX, recipientAddressY]))) / 1000))
+    }
     const getPrice = () => {
       if (deliveryDistance <= 2 && deliveryDistance !== 0) {
         setDeliveryPrice(DELIVERY_PRICE._0_2)
@@ -210,37 +308,48 @@ function ParcelSender() {
         setDeliveryPrice(DELIVERY_PRICE._8_10)
       }
     }
+    getPrice()
+  }
+    , [DELIVERY_PRICE._0_2, DELIVERY_PRICE._2_5, DELIVERY_PRICE._5_8, DELIVERY_PRICE._8_10, deliveryDistance, isRecipientAddress, recipientAddressX, recipientAddressY, senderAddressX, senderAddressY])
 
-    let url = `http://localhost:3333/address/?address=${recipientAddress}`
-    console.log(url, 'url recipient search')
+  // fetch address for recipient input
+  useEffect(() => {
+    const urlServer = process.env.REACT_APP_URL_SERVER
+    console.log(urlServer, 'UrlServer')
+    let fetchUrl = `http://localhost:3333/address/?address=${recipientAddress}`
+    console.log(fetchUrl, 'url recipient search')
     const request = async () => {
-      setLoading(true)
+      setLoadingRecipient(true)
       try {
-        let response = await axios.get(url)
+        let response = await axios.get(fetchUrl)
         setSearchResultsRecipient(response.data)
-        if (response.data.length) {
+        if (response.data.length & isMounted.current) {
           recipientAddress.toUpperCase().trim().localeCompare(response.data[0].adresse.trim()) === 0 ? setIsRecipientAddress(true) : setIsRecipientAddress(false)
           setRecipientAddressX(response.data[0].lon.toString())
           setRecipientAddressY(response.data[0].lat.toString())
-          setDeliveryDistance((Math.round((getDistance([senderAddressX, senderAddressY], [recipientAddressX, recipientAddressY]))) / 1000))
         }
       } catch (e) {
-        console.log(e)
+        console.log(e.message)
       } finally {
-        setLoading(false)
+        setLoadingRecipient(false)
+        if (!recipientAddress === "") {
+          setIsRecipientAddress(false)
+        }
       }
     }
     request()
-    getPrice()
+
   }
-    , [recipientAddress, isMounted, senderAddressX, senderAddressY, recipientAddressX, recipientAddressY, deliveryDistance, DELIVERY_PRICE._0_2, DELIVERY_PRICE._2_5, DELIVERY_PRICE._5_8, DELIVERY_PRICE._8_10])
+    , [isMounted, recipientAddress])
 
-  const handleClickAddDelivery = () => { setDisplayAddDelivery(!displayAddDelivery) }
 
+  const handleClickDisplayDelivery = () => { setDisplayAddDelivery(!displayAddDelivery) }
+
+  // Approve function
   const handleClickApprove = async () => {
     try {
-      setIsLoading(true)
-      let tx = await daidToken.approve(web3State.account, 10000000000000)
+      setLoadingApprove(true)
+      let tx = await daidToken.approve("0xc09D022AA16F0c98271b315FAd704031d7254277", ethers.utils.parseUnits("1000000"))
       await tx.wait()
       toast({
         title: `Confirmed transaction : Token tranfer is approve for ${web3State.account}`,
@@ -260,17 +369,19 @@ function ParcelSender() {
           isClosable: true,
         })
       }
-      console.log(e)
+      console.log(e.message)
     } finally {
-      setIsLoading(false)
+      setIsApprove(true)
+      setLoadingApprove(false)
     }
   }
 
+  // Register delivery function
   const handleClickDeliveryRegister = async (e) => {
     e.preventDefault()
     try {
       setIsLoading(true)
-      let tx = await fastDeliveryNft.createDelivery(recipientFirstName, recipientLastName, recipientAddress, recipientAddressX, recipientAddressY, recipientAddressInfo, recipientTel, recipientMail, deliveryPrice)
+      let tx = await fastDeliveryNft.createDelivery(recipientFirstName, recipientLastName, recipientAddress, recipientAddressX, recipientAddressY, recipientAddressInfo, recipientTel, recipientMail, ethers.utils.parseUnits(deliveryPrice.toString()), deliveryDistance.toString())
       await tx.wait()
       toast({
         title: 'Confirmed transaction : Your delivery have been registered',
@@ -290,36 +401,150 @@ function ParcelSender() {
           isClosable: true,
         })
       }
-      console.log(e)
+      console.log(e.message)
     } finally {
       setIsLoading(false)
-      setDisplayAddDelivery(false)
       setRecipientFirstName("")
       setRecipientLastName("")
       setRecipientAddress("")
       setRecipientAddressInfo("")
       setRecipientTel("")
       setRecipientMail("")
-      setDeliveryPrice(0)
+      setIsRecipientAddress(false)
+    }
+  }
+
+  // Pick up delivery function
+  const handleClickPickUp = async () => {
+
+    // Randomize deliveryCode and hash
+    const random = new Random(); // uses the nativeMath engine
+    const deliveryCode = random.integer(1000, 9999)
+    let deliveryCodeHash = utils.keccak256(utils.toUtf8Bytes(deliveryCode.toString()))
+
+    // email request
+    const emailRequest = async () => {
+      let urlServer = process.env.REACT_APP_URL_SERVER
+      let email = "dad.savel@gmail.com"
+      let message = `${senderFirstName} ${senderLastName} send you a parcel\n The delivery code for retreiving parcel is : ${deliveryCode}`
+      const response = await axios.post(`http://localhost:3333/access`, { email: email, message: message })
+      if (response.status === 'success') {
+        alert("Message Sent.");
+        this.resetForm()
+      } else if (response.status === 'fail') {
+        alert("Message failed to send.")
+      }
+    }
+    try {
+      setIsLoading(true)
+      let tx = await fastDeliveryNft.collectDelivery(idSelect, deliveryCodeHash)
+      await tx.wait()
+      await emailRequest()
+      toast({
+        title: 'Confirmed transaction : Pick up Delivery has been confirmed \nInfo email send to Recipient with delivery code',
+        description: `Transaction hash: ${tx.hash}`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      })
+    } catch (e) {
+      if (e.code) {
+        console.log(e)
+        toast({
+          title: 'Transaction denied',
+          description: e.message,
+          status: 'error',
+          duration: 9000,
+          isClosable: true,
+        })
+      }
+      console.log(e.message)
+    } finally {
+      setIsLoading(false)
+      setIdSelect()
+    }
+  }
+
+  const handleClickDel = async () => {
+    try {
+      setIsLoading(true)
+      let tx = await fastDeliveryNft.deleteDelivery(Number(idSelect))
+      await tx.wait()
+
+      toast({
+        title: `Confirmed transaction : Delivery id ${idSelect} has been deleted`,
+        description: `Transaction hash: ${tx.hash}`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      })
+    } catch (e) {
+      if (e.code) {
+        toast({
+          title: 'Transaction denied',
+          description: e.message,
+          status: 'error',
+          duration: 9000,
+          isClosable: true,
+        })
+      }
+      console.log(e.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <>
-      <Box w="100%" px="2" pt="2" pb="5">
-        <Flex>
-          <Heading pl="3" size="lg">My Deliveries</Heading>
+      <Box w="100%" px="2" pt="2" pb="3">
+        <HStack alignItems="center" justifyContent="space-beetween" w="100%">
+          <Heading pl="3" size="md">{!displayAddDelivery ? 'My Deliveries' : 'Add Delivery'}</Heading>
           <Spacer />
           <Box>
             <Button
+              my="1"
               size="sm"
               type="button"
               borderRadius="lg"
               colorScheme="blue"
-              onClick={handleClickAddDelivery}
-            > Add new delivery</Button>
+              onClick={handleClickDisplayDelivery}
+            > {displayAddDelivery ? '> My Deliveries' : '> Add Delivery'}</Button>
           </Box>
-        </Flex>
+          <Box as="form">
+            <FormControl isRequired>
+              <InputGroup>
+                <Input
+                  mr="2"
+                  w="90px"
+                  type="number"
+                  placeholder="Id"
+                  onChange={(event) => setIdSelect(event.target.value)}
+                />
+                <InputRightElement w="70px">
+                  <Button
+                    px="1"
+                    size="sm"
+                    borderRadius="lg"
+                    colorScheme="blue"
+                    type="button"
+                    onClick={handleClickPickUp}>
+                    Pick up
+                  </Button>
+                  {/* not implemented toDo
+                  <Button
+                    size="sm"
+                    borderRadius="lg"
+                    colorScheme="red"
+                    type="button"
+                    onClick={handleClickDel}>
+                    Del
+                  </Button>
+                  */}
+                </InputRightElement>
+              </InputGroup>
+            </FormControl>
+          </Box>
+        </HStack>
         {loadingList &&
           <Text> Loading...</Text>
         }
@@ -331,16 +556,14 @@ function ParcelSender() {
           !loadingList && deliveriesList.length > 0 && !displayAddDelivery && (
             deliveriesList.map((delivery) => {
               return (
-                <Box key={delivery.id}>
-                  <Flex w="100%" wrap="wrap" mt="2">
-                    <Box w="25px" px="1">{delivery.id}</Box>
-                    <Box minW="120px" flex="1">
+                <Box pt="2" w="100 % " key={delivery.id}>
+                  <Flex wrap="wrap" mt="2" >
+                    <Box display="flex" alignItems="center" justifyContent="center" w="25px" px="1">{delivery.id}</Box>
+                    <Box display="flex" mx="1" bg="blue.300">
                       <Popover trigger="hover" >
-                        <PopoverTrigger >
-                          <VStack spacing="0">
-                            <Text px="1">{delivery.senderFirstName}</Text>
-                            <Text px="1">{delivery.senderLastName}</Text>
-                          </VStack>
+                        <PopoverTrigger>
+                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center">
+                            {delivery.senderFirstName} {delivery.senderLastName}</Box>
                         </PopoverTrigger>
                         <PopoverContent mx="1">
                           <PopoverArrow />
@@ -354,19 +577,16 @@ function ParcelSender() {
                         </PopoverContent>
                       </Popover>
                     </Box>
-                    <Box minW="120px" flex="1">
+                    <Box display="flex" mx="1" bg="teal.300">
                       <Popover trigger="hover" >
                         <PopoverTrigger>
-                          <VStack maxW="120px" spacing="0">
-                            <Text px="1">R {delivery.recipientFirstName}</Text>
-                            <Text px="1">{delivery.recipientLastName}</Text>
-                          </VStack>
+                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
+                            {delivery.recipientFirstName} {delivery.recipientLastName}</Box>
                         </PopoverTrigger>
                         <PopoverContent mx="1">
                           <PopoverArrow />
                           <PopoverCloseButton />
-                          <PopoverHeader>Info :</PopoverHeader>
-                          <PopoverBody>{delivery.recipientFirstNameRecipient} {delivery.recipientLastName}</PopoverBody>
+                          <PopoverBody>{delivery.recipientFirstName} {delivery.recipientLastName}</PopoverBody>
                           <PopoverBody>{delivery.recipientAddress}</PopoverBody>
                           <PopoverBody>{delivery.recipientInfo}</PopoverBody>
                           <PopoverBody>{delivery.recipientTel}</PopoverBody>
@@ -374,33 +594,34 @@ function ParcelSender() {
                         </PopoverContent>
                       </Popover>
                     </Box>
-                    <Box minW="70px" flex="1">
-                      {delivery.deliveryDistance}
+                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px">
+                      {delivery.deliveryDistance} (Km)
                     </Box>
-                    <Box maxW="80px" minW="60px" flex="1">
-                      {delivery.deliveryAmount}
+                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px" >
+                      {delivery.deliveryAmount} (DAID)
                     </Box>
-                    <Box>
+                    <Box display="flex" mx="1" bg="red.300">
                       <Popover trigger="hover" >
-                        <PopoverTrigger >
-                          <Text minW="110px" flex="1" px="2">Deliveryman{delivery.deliverymanNameCompany}</Text>
+                        <PopoverTrigger>
+                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
+                            {delivery.deliverymanCompany}</Box>
                         </PopoverTrigger>
                         <PopoverContent mx="1">
                           <PopoverArrow />
                           <PopoverCloseButton />
-                          <PopoverHeader>Info :</PopoverHeader>
-                          <PopoverBody>{delivery.deliverymanNameCompany}</PopoverBody>
-                          <PopoverBody>M. {delivery.deliveymanName}</PopoverBody>
+                          <PopoverBody>{delivery.deliverymanCompany}</PopoverBody>
+                          <PopoverBody>M. {delivery.deliverymanManagerName}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanAddress}</PopoverBody>
-                          <PopoverBody>{delivery.deliverymanInfo}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanTel}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanMail}</PopoverBody>
                         </PopoverContent>
                       </Popover>
                     </Box>
-                    <Box minW="60px" flex="1" px="2">{delivery.deliveryStatus}
+                    <Box display="flex" flex="1" alignItems="center" justifyContent="center" minW="100x">
+                      {delivery.deliveryStatus}
                     </Box>
-                    <Box minW="90px" flex="1" px="2">{delivery.timestamp}
+                    <Box display="flex" flex="1" alignItems="center" justifyContent="center" minW="100" px="2">
+                      {delivery.timestamp}
                     </Box>
                   </Flex>
                   <Divider />
@@ -465,8 +686,11 @@ function ParcelSender() {
                     value={senderAddress.toLowerCase()}
                     isDisabled={true} />
                 </FormControl>
+                {/* unused fetching : Address is user address and can't be changed at the moment
+
                 {
-                  document.activeElement === searchInputSender.current && senderAddress && !isSenderAddress && <List as="ul"
+                document.activeElement === searchInputSender.current && senderAddress && !isSenderAddress &&
+                <List as="ul"
                     fontSize="12px"
                     onClick={(event) => { setSenderAddress(event.target.textContent) }}
                     p="2"
@@ -475,6 +699,8 @@ function ParcelSender() {
                     border="1px"
                     borderColor="gray.300"
                     borderRadius="md">
+
+                    
                     {loading && (<ListItem>loading...</ListItem>)}
                     {!searchResultsSender.length && !loading && (<ListItem>No result.</ListItem>)}
                     {searchResultsSender.length && (
@@ -489,7 +715,10 @@ function ParcelSender() {
                       )
                     )
                     }
+                    }
                   </List>
+                  */
+
                 }
               </Box>
               <Box w="90px" mx="1">
@@ -601,14 +830,13 @@ function ParcelSender() {
                     border="1px"
                     borderColor="gray.300"
                     borderRadius="md">
-                    {loading && (<ListItem>loading...</ListItem>)}
-                    {!searchResultsRecipient.length && !loading && (<ListItem>No result.</ListItem>)}
+                    {loadingRecipient && (<ListItem>loading...</ListItem>)}
+                    {!searchResultsRecipient.length && !loadingRecipient && (<ListItem>No result.</ListItem>)}
                     {searchResultsRecipient.length && (
                       searchResultsRecipient.map((result) => {
                         return (
                           <ListItem key={result.id} _hover={{
-                            background: "white",
-                            fontSize: "15px",
+                            background: "white"
                           }}>{result.adresse} </ListItem>
                         )
                       }
@@ -670,10 +898,12 @@ function ParcelSender() {
                 <Button
                   size="sm"
                   borderRadius="lg"
-                  type="submit"
-                  isLoading={isLoading}
-                  colorScheme="blue"
-                >Register delivery
+                  type="button"
+                  isLoading={loadingApprove}
+                  colorScheme={isApprove ? "green" : "danger"}
+                  onClick={handleClickApprove}
+                  isDisabled={isApprove && true}
+                >{isApprove ? "Approved" : "Approve"}
                 </Button>
               </Box>
               <Box>
@@ -684,10 +914,10 @@ function ParcelSender() {
                 <Button
                   size="sm"
                   borderRadius="lg"
-                  type="button"
+                  type="submit"
                   isLoading={isLoading}
                   colorScheme="blue"
-                  onClick={handleClickApprove} >Approve
+                >Register delivery
                 </Button>
               </Box>
             </Flex>
@@ -698,4 +928,4 @@ function ParcelSender() {
   )
 }
 
-export default ParcelSender
+export default ParcelSenderBoard

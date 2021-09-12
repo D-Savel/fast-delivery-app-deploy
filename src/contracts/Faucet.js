@@ -1,4 +1,4 @@
-export const FaucetAddress = '0x889a243F0f4effC28832aC465FBC7d6Fc9B34d22'
+export const FaucetAddress = '0xF801380f61885B5b804408323E2b18CE0De54DE1'
 
 export const FaucetAbi = [
   {
@@ -10,7 +10,7 @@ export const FaucetAbi = [
       },
       {
         "internalType": "uint256",
-        "name": "faucetAmount_",
+        "name": "tokenFaucetAmount_",
         "type": "uint256"
       }
     ],

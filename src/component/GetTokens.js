@@ -117,7 +117,7 @@ function GetTokens() {
       <Center fontSize="16" as="b" borderRadius="lg" borderColor="blue" w="sm" color="blue">
         {delay}
       </Center>
-    </Flex >
+    </Flex>
   )
 }
 
