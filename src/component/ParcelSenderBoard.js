@@ -424,7 +424,6 @@ function ParcelSenderBoard() {
 
     // email request
     const emailRequest = async () => {
-      let urlServer = process.env.REACT_APP_URL_SERVER
       let email = "dad.savel@gmail.com"
       let message = `${senderFirstName} ${senderLastName} send you a parcel\n The delivery code for retreiving parcel is : ${deliveryCode}`
       const response = await axios.post(`http://localhost:3333/access`, { email: email, message: message })
@@ -465,34 +464,6 @@ function ParcelSenderBoard() {
     }
   }
 
-  const handleClickDel = async () => {
-    try {
-      setIsLoading(true)
-      let tx = await fastDeliveryNft.deleteDelivery(Number(idSelect))
-      await tx.wait()
-
-      toast({
-        title: `Confirmed transaction : Delivery id ${idSelect} has been deleted`,
-        description: `Transaction hash: ${tx.hash}`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      })
-    } catch (e) {
-      if (e.code) {
-        toast({
-          title: 'Transaction denied',
-          description: e.message,
-          status: 'error',
-          duration: 9000,
-          isClosable: true,
-        })
-      }
-      console.log(e.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <>

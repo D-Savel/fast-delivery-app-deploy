@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useContext, useState, useEffect } from 'react'
 import {
   Popover,
@@ -27,6 +28,8 @@ import { FastDeliveryNftContext } from '../App'
 import { FastDeliveryUserContext } from '../App'
 
 function DeliverymanBoard() {
+
+  /*
   const [web3State] = useContext(Web3Context)
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
@@ -85,7 +88,7 @@ function DeliverymanBoard() {
                 DeliveryDateStatus = new Date(Number(deliveryInfo[14] * 1000))
                 DeliveryStatusInfo = deliveryStatusEnum[1]
                 break;
-              case '2':
+              case 2:
                 DeliveryDateStatus = new Date(Number(deliveryInfo[15] * 1000))
                 DeliveryStatusInfo = deliveryStatusEnum[2]
                 break;
@@ -168,11 +171,12 @@ function DeliverymanBoard() {
       setIsLoading(false)
 
     }
-
   }
+  */
   return (
     <>
       <p> Deliveryman Board</p>
+      { /*}
       <HStack>
         <Box>
           <Button
@@ -197,7 +201,7 @@ function DeliverymanBoard() {
           </Button>
         </Box>
       </HStack>
-      {
+          {
         loadingList &&
         <Text> Loading...</Text>
       }
@@ -283,6 +287,7 @@ function DeliverymanBoard() {
           })
         )
       }
+      */}
     </>
   )
 }
