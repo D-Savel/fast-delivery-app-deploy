@@ -174,7 +174,7 @@ function ParcelSender() {
   }, [fastDeliveryNft, web3State.account])
 
   useEffect(() => {
-    let url = `https://stormy-gorge-78325.herokuapp.com/address/?address=${senderAddress}`
+    let url = `http://localhost:3333//address/?address=${senderAddress}`
     console.log(url, 'url Sender search')
     const request = async () => {
       setLoading(true)
@@ -211,7 +211,7 @@ function ParcelSender() {
       }
     }
 
-    let url = `https://stormy-gorge-78325.herokuapp.com/address/?address=${recipientAddress}`
+    let url = `http://localhost:3333/address/?address=${recipientAddress}`
     console.log(url, 'url recipient search')
     const request = async () => {
       setLoading(true)
