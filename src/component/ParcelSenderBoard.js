@@ -1,4 +1,5 @@
 import { useRef, useContext, useState, useEffect } from 'react'
+import { FastDeliveryNftAddress } from '../contracts/FastDeliveryNft'
 import { getDistance } from 'ol/sphere';
 import { utils, ethers } from 'ethers'
 import { Random } from 'random-js'
@@ -95,7 +96,8 @@ function ParcelSenderBoard() {
 
   const [deliveryIdSender, setDeliveryIdSender] = useState([])
   const [deliveriesList, setDeliveriesList] = useState([])
-  const [idSelect, setIdSelect] = useState()
+  const [nbDeliveryInList, setNbDeliveryInList] = useState(1)
+  const [idSelect, setIdSelect] = useState("")
 
   const toast = useToast()
   const searchInputSender = useRef(null)
@@ -107,7 +109,7 @@ function ParcelSenderBoard() {
     if (daidToken) {
       const getAllowance = async () => {
         try {
-          const _allowance = await daidToken.allowance(web3State.account, "0xc09D022AA16F0c98271b315FAd704031d7254277")
+          const _allowance = await daidToken.allowance(web3State.account, FastDeliveryNftAddress)
           const allowance = ethers.utils.formatEther(_allowance)
           Number(allowance) < deliveryPrice ? setIsApprove(false) : setIsApprove(true)
         } catch (e) {
@@ -149,7 +151,8 @@ function ParcelSenderBoard() {
       const getDeliveryId = async () => {
         try {
           const id = await fastDeliveryNft.getDeliveriesIdByAddress(web3State.account)
-          setDeliveryIdSender(id)
+          setDeliveryIdSender(id.filter(index => Number(index) !== 0))
+          setNbDeliveryInList(id.filter(index => Number(index) !== 0).length)
         } catch (e) {
           console.log(e.message)
         }
@@ -206,7 +209,7 @@ function ParcelSenderBoard() {
                 break;
               case 4:
                 DeliveryDateStatus = new Date(Number(deliveryInfo.onlineTimestamp * 1000))
-                DeliveryStatusInfo = deliveryStatusEnum[3]
+                DeliveryStatusInfo = deliveryStatusEnum[4]
                 break;
               default:
                 DeliveryDateStatus = "Date Error"
@@ -227,17 +230,17 @@ function ParcelSenderBoard() {
               senderAddressInfo: senderAddressInfo,
               senderTel: senderTel,
               senderMail: senderMail,
-              recipientFirstName: deliveryInfo[3],
-              recipientLastName: deliveryInfo[4],
-              recipientAddress: deliveryInfo[5],
-              recipientAddressInfo: deliveryInfo[8],
-              recipientTel: deliveryInfo[9],
-              recipientMail: deliveryInfo[10],
+              recipientFirstName: deliveryInfo.recipientFirstName,
+              recipientLastName: deliveryInfo.recipientLastName,
+              recipientAddress: deliveryInfo.recipientAddress,
+              recipientAddressInfo: deliveryInfo.recipientAddressInfo,
+              recipientTel: deliveryInfo.recipientTel,
+              recipientMail: deliveryInfo.recipientMail,
               deliverymanCompany: deliverymanInfo.lastName,
               deliverymanManagerName: deliverymanInfo.firstName,
               deliverymanAddress: deliverymanInfo.userAddress,
-              deliverymanTel: deliverymanInfo[8],
-              deliverymanMail: deliverymanInfo[9],
+              deliverymanTel: deliverymanInfo.tel,
+              deliverymanMail: deliverymanInfo.mail,
               deliveryAmount: ethers.utils.formatEther(deliveryInfo.deliveryAmount),
               deliveryDistance: deliveryInfo.deliveryDistance,
               deliveryStatus: DeliveryStatusInfo,
@@ -264,7 +267,7 @@ function ParcelSenderBoard() {
 
 
   /* unused no fetch for sender
-  
+   
   // fetch address for sender input
   useEffect(() => {
     let url = `https://stormy-gorge-78325.herokuapp.com/address/?address=${senderAddress}`
@@ -316,7 +319,7 @@ function ParcelSenderBoard() {
   useEffect(() => {
     const urlServer = process.env.REACT_APP_URL_SERVER
     console.log(urlServer, 'UrlServer')
-    let fetchUrl = `http://localhost:3333/address/?address=${recipientAddress}`
+    let fetchUrl = `${urlServer}/address/?address=${recipientAddress}`
     console.log(fetchUrl, 'url recipient search')
     const request = async () => {
       setLoadingRecipient(true)
@@ -343,13 +346,16 @@ function ParcelSenderBoard() {
     , [isMounted, recipientAddress])
 
 
-  const handleClickDisplayDelivery = () => { setDisplayAddDelivery(!displayAddDelivery) }
+  const handleClickDisplayDelivery = () => {
+    setDisplayAddDelivery(!displayAddDelivery)
+    setIdSelect("")
+  }
 
   // Approve function
   const handleClickApprove = async () => {
     try {
       setLoadingApprove(true)
-      let tx = await daidToken.approve("0xc09D022AA16F0c98271b315FAd704031d7254277", ethers.utils.parseUnits("1000000"))
+      let tx = await daidToken.approve(FastDeliveryNftAddress, ethers.utils.parseUnits("1000000"))
       await tx.wait()
       toast({
         title: `Confirmed transaction : Token tranfer is approve for ${web3State.account}`,
@@ -424,9 +430,10 @@ function ParcelSenderBoard() {
 
     // email request
     const emailRequest = async () => {
+      let urlServer = process.env.REACT_APP_URL_SERVER
       let email = "dad.savel@gmail.com"
       let message = `${senderFirstName} ${senderLastName} send you a parcel\n The delivery code for retreiving parcel is : ${deliveryCode}`
-      const response = await axios.post(`http://localhost:3333/access`, { email: email, message: message })
+      const response = await axios.post(`${urlServer}/access`, { email: email, message: message })
       if (response.status === 'success') {
         alert("Message Sent.");
         this.resetForm()
@@ -460,16 +467,45 @@ function ParcelSenderBoard() {
       console.log(e.message)
     } finally {
       setIsLoading(false)
-      setIdSelect()
+      setIdSelect("")
+    }
+  }
+
+  const handleClickDel = async () => {
+    try {
+      setIsLoading(true)
+      let tx = await fastDeliveryNft.deleteDelivery(Number(idSelect))
+      await tx.wait()
+
+      toast({
+        title: `Confirmed transaction : Delivery id ${idSelect} has been deleted`,
+        description: `Transaction hash: ${tx.hash}`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      })
+    } catch (e) {
+      if (e.code) {
+        toast({
+          title: 'Transaction denied',
+          description: e.message,
+          status: 'error',
+          duration: 9000,
+          isClosable: true,
+        })
+      }
+      console.log(e.message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
 
   return (
     <>
-      <Box w="100%" px="2" pt="2" pb="3">
-        <HStack alignItems="center" justifyContent="space-beetween" w="100%">
-          <Heading pl="3" size="md">{!displayAddDelivery ? 'My Deliveries' : 'Add Delivery'}</Heading>
+      <Box w="100%" px="2" py="2">
+        <HStack position="sticky" top="125px" zIndex="sticky" pt="1" alignItems="center" justifyContent="space-beetween" w="100%">
+          <Heading pl="3" size="md">{!displayAddDelivery ? 'Deliveries' : 'Add Delivery'}</Heading>
           <Spacer />
           <Box>
             <Button
@@ -479,57 +515,58 @@ function ParcelSenderBoard() {
               borderRadius="lg"
               colorScheme="blue"
               onClick={handleClickDisplayDelivery}
-            > {displayAddDelivery ? '> My Deliveries' : '> Add Delivery'}</Button>
+            > {displayAddDelivery ? '> My Deliveries' : '> + Delivery'}</Button>
           </Box>
-          <Box as="form">
-            <FormControl isRequired>
-              <InputGroup>
-                <Input
-                  mr="2"
-                  w="90px"
-                  type="number"
-                  placeholder="Id"
-                  onChange={(event) => setIdSelect(event.target.value)}
-                />
-                <InputRightElement w="70px">
-                  <Button
-                    px="1"
-                    size="sm"
-                    borderRadius="lg"
-                    colorScheme="blue"
-                    type="button"
-                    onClick={handleClickPickUp}>
-                    Pick up
-                  </Button>
-                  {/* not implemented toDo
-                  <Button
-                    size="sm"
-                    borderRadius="lg"
-                    colorScheme="red"
-                    type="button"
-                    onClick={handleClickDel}>
-                    Del
-                  </Button>
-                  */}
-                </InputRightElement>
-              </InputGroup>
-            </FormControl>
-          </Box>
+          {!displayAddDelivery && (
+            <Box as="form">
+              <FormControl isRequired>
+                <InputGroup>
+                  <Input
+                    w="170px"
+                    type="number"
+                    placeholder="Id"
+                    onChange={(event) => setIdSelect(event.target.value)}
+                    value={idSelect}
+                  />
+                  <InputRightElement w="110px">
+                    <Button
+                      mr="1"
+                      px="1"
+                      size="sm"
+                      borderRadius="lg"
+                      colorScheme="blue"
+                      type="button"
+                      onClick={handleClickPickUp}>
+                      Pick up
+                    </Button>
+                    <Button
+                      size="sm"
+                      borderRadius="lg"
+                      colorScheme="red"
+                      type="button"
+                      onClick={handleClickDel}>
+                      Del
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+            </Box>
+          )}
         </HStack>
         {loadingList &&
           <Text> Loading...</Text>
         }
         {
-          !loadingList && deliveriesList.length < 1 && !displayAddDelivery &&
+          !loadingList && nbDeliveryInList < 1 && !displayAddDelivery &&
           <Text> You don't have any delivery registered</Text>
         }
         {
-          !loadingList && deliveriesList.length > 0 && !displayAddDelivery && (
+          !loadingList && nbDeliveryInList > 0 && !displayAddDelivery && (
             deliveriesList.map((delivery) => {
               return (
                 <Box pt="2" w="100 % " key={delivery.id}>
                   <Flex wrap="wrap" mt="2" >
-                    <Box display="flex" alignItems="center" justifyContent="center" w="25px" px="1">{delivery.id}</Box>
+                    <Box display="flex" alignItems="center" justifyContent="center" bg="gray.200" w="25px" px="1">{delivery.id}</Box>
                     <Box display="flex" mx="1" bg="blue.300">
                       <Popover trigger="hover" >
                         <PopoverTrigger>
@@ -580,7 +617,7 @@ function ParcelSenderBoard() {
                         <PopoverContent mx="1">
                           <PopoverArrow />
                           <PopoverCloseButton />
-                          <PopoverBody>{delivery.deliverymanCompany}</PopoverBody>
+                          <PopoverBody>{delivery.deliverymanCompany ? delivery.deliverymanCompany : "Delivery not Attributed"}</PopoverBody>
                           <PopoverBody>M. {delivery.deliverymanManagerName}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanAddress}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanTel}</PopoverBody>
@@ -588,12 +625,19 @@ function ParcelSenderBoard() {
                         </PopoverContent>
                       </Popover>
                     </Box>
-                    <Box display="flex" flex="1" alignItems="center" justifyContent="center" minW="100x">
-                      {delivery.deliveryStatus}
-                    </Box>
-                    <Box display="flex" flex="1" alignItems="center" justifyContent="center" minW="100" px="2">
-                      {delivery.timestamp}
-                    </Box>
+                    <Popover trigger="hover" >
+                      <PopoverTrigger>
+                        <Box display="flex" flex="1" alignItems="center" justifyContent="center" bg="orange.200" minW="100x">
+                          {delivery.deliveryStatus}
+                        </Box>
+                      </PopoverTrigger>
+                      <PopoverContent mx="1">
+                        <PopoverArrow />
+                        <PopoverCloseButton />
+                        <PopoverBody>{delivery.deliveryStatus}</PopoverBody>
+                        <PopoverBody>{delivery.timestamp}</PopoverBody>
+                      </PopoverContent>
+                    </Popover>
                   </Flex>
                   <Divider />
                 </Box>
@@ -871,15 +915,15 @@ function ParcelSenderBoard() {
                   borderRadius="lg"
                   type="button"
                   isLoading={loadingApprove}
-                  colorScheme={isApprove ? "green" : "danger"}
+                  colorScheme={isApprove ? "green" : "orange"}
                   onClick={handleClickApprove}
                   isDisabled={isApprove && true}
                 >{isApprove ? "Approved" : "Approve"}
                 </Button>
               </Box>
               <Box>
-                <Text> Distance : {deliveryDistance} Km</Text>
-                <Text> Price : {deliveryPrice} DAID</Text>
+                <Text> {isRecipientAddress && recipientAddress ? `Distance : ${deliveryDistance}` : "Distance : -"} Km</Text>
+                <Text> {isRecipientAddress && recipientAddress ? `Price : ${deliveryPrice}` : "Price : -"} DAID</Text>
               </Box>
               <Box>
                 <Button

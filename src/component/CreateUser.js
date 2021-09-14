@@ -46,7 +46,7 @@ function CreateUser(props) {
   useEffect(() => {
     const urlServer = process.env.REACT_APP_URL_SERVER
     console.log(urlServer, 'UrlServer')
-    let fetchUrl = `http://localhost:3333/address/?address=${userAddress}`
+    let fetchUrl = `${urlServer}/address/?address=${userAddress}`
     console.log(fetchUrl, 'url Create User')
     const request = async () => {
       setLoading(true)

@@ -1,4 +1,4 @@
-export const FastDeliveryNftAddress = '0xc09D022AA16F0c98271b315FAd704031d7254277'
+export const FastDeliveryNftAddress = '0x9E70B96bf4f27E3cE1319551348A3bb949c83643'
 
 export const FastDeliveryNftAbi = [
   {
@@ -60,6 +60,119 @@ export const FastDeliveryNftAbi = [
       }
     ],
     "name": "ApprovalForAll",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "parcelSenderAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deliverymanAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nftIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "Attributed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "parcelSenderAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nftIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "Deleted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "parcelSenderAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deliverymanAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nftIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "Delivered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "parcelSenderAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deliverymanAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nftIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "InDelivery",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "parcelSenderAccount",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "nftIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "OnLine",
     "type": "event"
   },
   {
@@ -388,9 +501,9 @@ export const FastDeliveryNftAbi = [
         "type": "uint256"
       },
       {
-        "internalType": "string",
-        "name": "code_",
-        "type": "string"
+        "internalType": "bytes32",
+        "name": "deliveryCode_",
+        "type": "bytes32"
       }
     ],
     "name": "delivered",
@@ -456,7 +569,13 @@ export const FastDeliveryNftAbi = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "parcel_Sender_",
+        "type": "address"
+      }
+    ],
     "name": "getUserDeliveriesAmountBalance",
     "outputs": [
       {

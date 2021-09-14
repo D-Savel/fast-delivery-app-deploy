@@ -11,7 +11,7 @@ import {
   VStack,
   useToast,
 } from '@chakra-ui/react'
-
+import { useIsMounted } from "../hooks/useIsMounted";
 import { FaucetContext } from '../App'
 
 function GetTokens() {
@@ -21,6 +21,7 @@ function GetTokens() {
   const [isLoading, setIsLoading] = useState(false)
   const [faucetCounter, setFaucetCounter] = useState(0)
   const toast = useToast()
+  const isMounted = useIsMounted()
 
   const handleClickGrabTokens = async () => {
     try {
@@ -56,9 +57,11 @@ function GetTokens() {
 
       const GetDelay = async () => {
         try {
-          setIsLoading(true)
-          const delay = await faucet.faucetDelayOf(web3State.account)
-          Number(delay) === 0 ? setDelay('Now') : setDelay((new Date(Number(delay) * 1000)).toLocaleString())
+          if (isMounted.current) {
+            setIsLoading(true)
+            const delay = await faucet.faucetDelayOf(web3State.account)
+            Number(delay) === 0 ? setDelay('Now') : setDelay((new Date(Number(delay) * 1000)).toLocaleString())
+          }
         } catch (e) {
           if (e.code === 4001) {
             toast({
@@ -76,7 +79,7 @@ function GetTokens() {
       }
       GetDelay()
     }
-  }, [faucet, web3State.account, toast, faucetCounter])
+  }, [faucet, web3State.account, toast, faucetCounter, isMounted])
 
   return (
     <Flex flexDirection="column" alignItems="center" m="2" >

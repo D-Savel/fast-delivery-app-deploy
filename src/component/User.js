@@ -2,7 +2,8 @@ import { useContext, useEffect, useState } from 'react'
 import {
   Badge,
   Box,
-  VStack
+  VStack,
+  Spacer
 } from '@chakra-ui/react'
 import { DaidTokenContext } from '../App'
 import { Web3Context } from 'web3-hooks'
@@ -34,7 +35,7 @@ function User() {
         getTokenBalance()
       }
       getTokenBalance()
-      const userFilter = daidToken.filters.Transfer(web3State.account, web3State.account)
+      const userFilter = daidToken.filters.Transfer(null, web3State.account)
       // ecouter sur l'event Transfer
       daidToken.on(userFilter, cb)
       return () => {
@@ -45,16 +46,16 @@ function User() {
   }, [setTokenBalance, daidToken, web3State.account, tokenBalance])
 
   return (
-    <VStack py="1" align="end">
+    <VStack py="1" alignItems="end">
       <Box>
         {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pr="1" pt="1" variant="solid" colorScheme="blue">{roundedEtherBalance} ETH</Badge>
           : <Badge borderRadius="lg" fontSize="14" mb="1" px="2" pt="1" variant="solid" colorScheme="red">{roundedEtherBalance} ETH</Badge>}
       </Box>
-
+      <Spacer />
       <Box> {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="blue">{Number(tokenBalance)} DAID</Badge>
         : <Badge borderRadius="lg" mr="1" px="2" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{Number(tokenBalance)} DAID</Badge>}
       </Box>
-    </VStack>
+    </VStack >
   )
 }
 

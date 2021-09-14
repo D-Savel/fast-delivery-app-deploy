@@ -23,9 +23,8 @@ function LandingPage(props) {
         }
       }
       getUserType()
-
     }
-  }, [fastDeliveryUser, web3State.account, setUserProfil])
+  }, [fastDeliveryUser, setUserProfil, web3State.account])
 
   return (
     <>
