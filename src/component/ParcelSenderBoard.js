@@ -96,7 +96,6 @@ function ParcelSenderBoard() {
 
   const [deliveryIdSender, setDeliveryIdSender] = useState([])
   const [deliveriesList, setDeliveriesList] = useState([])
-  const [nbDeliveryInList, setNbDeliveryInList] = useState(1)
   const [idSelect, setIdSelect] = useState("")
 
   const toast = useToast()
@@ -147,19 +146,31 @@ function ParcelSenderBoard() {
 
   // fetch all delivery id for user
   useEffect(() => {
-    if (fastDeliveryNft | displayAddDelivery === false) {
+    if (fastDeliveryNft) {
       const getDeliveryId = async () => {
         try {
           const id = await fastDeliveryNft.getDeliveriesIdByAddress(web3State.account)
           setDeliveryIdSender(id.filter(index => Number(index) !== 0))
-          setNbDeliveryInList(id.filter(index => Number(index) !== 0).length)
         } catch (e) {
           console.log(e.message)
         }
       }
+      const cb = (Sender, tokenId) => {
+        getDeliveryId()
+      }
       getDeliveryId()
+      const onLineFilter = fastDeliveryNft.filters.OnLine(web3State.account)
+      const deletedeFilter = fastDeliveryNft.filters.Deleted(web3State.account)
+      // ecouter sur l'event de FastdeliveryNft
+      fastDeliveryNft.on(onLineFilter, cb)
+      fastDeliveryNft.on(deletedeFilter, cb)
+      return () => {
+        // arreter d'ecouter lorsque le component sera unmount
+        fastDeliveryNft.off(onLineFilter, cb)
+        fastDeliveryNft.off(deletedeFilter, cb)
+      }
     }
-  }, [displayAddDelivery, fastDeliveryNft, web3State.account])
+  }, [fastDeliveryNft, web3State.account])
 
   // fetch deliveries an create an array of deliveries for user
   useEffect(() => {
@@ -260,10 +271,26 @@ function ParcelSenderBoard() {
           setLoadingList(false)
         }
       }
+      const cb = (Sender, deliveryman, tokenId) => {
+        getDeliveriesList()
+      }
       getDeliveriesList()
+      const attributedFilter = fastDeliveryNft.filters.Attributed(web3State.account)
+      const deliveredFilter = fastDeliveryNft.filters.Delivered(web3State.account)
+      const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(web3State.account)
+      // ecouter sur l'event Transfer
+
+      fastDeliveryNft.on(attributedFilter, cb)
+      fastDeliveryNft.on(deliveredFilter, cb)
+      fastDeliveryNft.on(inDeliveryFilter, cb)
+      return () => {
+        // arreter d'ecouter lorsque le component sera unmount
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(inDeliveryFilter, cb)
+      }
     }
-  }
-    , [deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel])
+  }, [deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel, web3State.account])
 
 
   /* unused no fetch for sender
@@ -557,11 +584,11 @@ function ParcelSenderBoard() {
           <Text> Loading...</Text>
         }
         {
-          !loadingList && nbDeliveryInList < 1 && !displayAddDelivery &&
+          !loadingList && deliveryIdSender.length < 1 && !displayAddDelivery &&
           <Text> You don't have any delivery registered</Text>
         }
         {
-          !loadingList && nbDeliveryInList > 0 && !displayAddDelivery && (
+          !loadingList && deliveryIdSender.length > 0 && !displayAddDelivery && (
             deliveriesList.map((delivery) => {
               return (
                 <Box pt="2" w="100 % " key={delivery.id}>
@@ -617,7 +644,7 @@ function ParcelSenderBoard() {
                         <PopoverContent mx="1">
                           <PopoverArrow />
                           <PopoverCloseButton />
-                          <PopoverBody>{delivery.deliverymanCompany ? delivery.deliverymanCompany : "Delivery not Attributed"}</PopoverBody>
+                          <PopoverBody>{delivery.deliverymanCompany === "-" ? "Delivery not Attributed" : delivery.deliverymanCompany}</PopoverBody>
                           <PopoverBody>M. {delivery.deliverymanManagerName}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanAddress}</PopoverBody>
                           <PopoverBody>{delivery.deliverymanTel}</PopoverBody>

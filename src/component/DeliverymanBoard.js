@@ -148,9 +148,26 @@ function DeliverymanBoard() {
           setLoadingList(false)
         }
       }
+      const cb = (Sender, deliveryman, tokenId) => {
+        getAllDeliveries()
+      }
       getAllDeliveries()
+      const attributedFilter = fastDeliveryNft.filters.Attributed(null, web3State.account)
+      const deliveredFilter = fastDeliveryNft.filters.Delivered(null, web3State.account)
+      const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(null, web3State.account)
+      // ecouter sur l'event Transfer
+
+      fastDeliveryNft.on(attributedFilter, cb)
+      fastDeliveryNft.on(deliveredFilter, cb)
+      fastDeliveryNft.on(inDeliveryFilter, cb)
+      return () => {
+        // arreter d'ecouter lorsque le component sera unmount
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(inDeliveryFilter, cb)
+      }
     }
-  }, [fastDeliveryNft, fastDeliveryUser, lastDeliveryId])
+  }, [fastDeliveryNft, fastDeliveryUser, lastDeliveryId, web3State.account])
 
   const handleClickDisplayDelivery2 = () => {
     setDisplayAddDelivery2(!displayAddDelivery2)

@@ -35,12 +35,15 @@ function User() {
         getTokenBalance()
       }
       getTokenBalance()
-      const userFilter = daidToken.filters.Transfer(null, web3State.account)
+      const senderFilter = daidToken.filters.Transfer(web3State.account)
+      const recipientFilter = daidToken.filters.Transfer(null, web3State.account)
       // ecouter sur l'event Transfer
-      daidToken.on(userFilter, cb)
+      daidToken.on(senderFilter, cb)
+      daidToken.on(recipientFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
-        daidToken.off(userFilter, cb)
+        daidToken.off(senderFilter, cb)
+        daidToken.off(recipientFilter, cb)
       }
     }
   }, [setTokenBalance, daidToken, web3State.account, tokenBalance])
