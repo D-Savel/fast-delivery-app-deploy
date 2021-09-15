@@ -1,4 +1,4 @@
-export const FastDeliveryUserAddress = '0xcAE492e84D9E232D793E0f83d74f769A06254F19'
+export const FastDeliveryUserAddress = '0x363f03F22BF16EDe785783A756C794914D00469d'
 
 export const FastDeliveryUserAbi = [
   {

@@ -1,4 +1,4 @@
-export const DaidTokenAddress = '0xb3e98C53b4Bc736588BAb19E03A08fE23157499c'
+export const DaidTokenAddress = '0xCe9C1509E195275B873A509dd56a356bfF13f0b7'
 
 export const DaidTokenAbi = [
   {

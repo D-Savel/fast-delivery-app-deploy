@@ -35,8 +35,8 @@ function CreateUser(props) {
   const [firstRegistration, setFirstRegistration] = useState(false)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [addressX, setaddressX] = useState('')
-  const [addressY, setaddressY] = useState('')
+  const [addressX, setAddressX] = useState('')
+  const [addressY, setAddressY] = useState('')
   const [companySiren, setCompanySiren] = useState('')
   const [addressInfo, setAddressInfo] = useState('')
   const [tel, setTel] = useState('')
@@ -47,26 +47,30 @@ function CreateUser(props) {
     const urlServer = process.env.REACT_APP_URL_SERVER
     console.log(urlServer, 'UrlServer')
     let fetchUrl = `${urlServer}/address/?address=${userAddress}`
-    console.log(fetchUrl, 'url Create User')
+    console.log(fetchUrl, 'url user search')
     const request = async () => {
       setLoading(true)
       try {
         let response = await axios.get(fetchUrl)
         setSearchResults(response.data)
-        if (response.data.length & isMounted.current) {
+        if (response.data.length) {
           userAddress.toUpperCase().trim().localeCompare(response.data[0].adresse.trim()) === 0 ? setIsAddress(true) : setIsAddress(false)
-          setaddressX(response.data[0].lon.toString())
-          setaddressY(response.data[0].lat.toString())
+          setAddressX(response.data[0].lon.toString())
+          setAddressY(response.data[0].lat.toString())
         }
       } catch (e) {
-        console.log(e)
+        console.log(e.message)
       } finally {
         setLoading(false)
+        if (!userAddress === "") {
+          setIsAddress(false)
+        }
       }
     }
     request()
+
   }
-    , [userAddress, isMounted])
+    , [isMounted, userAddress])
 
   const handleClickRegister = async (e) => {
     e.preventDefault()

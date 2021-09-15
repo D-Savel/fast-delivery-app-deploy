@@ -1,4 +1,4 @@
-export const FastDeliveryNftAddress = '0x9E70B96bf4f27E3cE1319551348A3bb949c83643'
+export const FastDeliveryNftAddress = '0xe2305AC112134A52b7dd624dC311A3885359f65D'
 
 export const FastDeliveryNftAbi = [
   {
