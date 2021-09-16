@@ -97,6 +97,7 @@ function ParcelSenderBoard() {
   const [deliveryIdSender, setDeliveryIdSender] = useState([])
   const [deliveriesList, setDeliveriesList] = useState([])
   const [idSelect, setIdSelect] = useState("")
+  const [isChanging, setIsChanging] = useState(false)
 
   const toast = useToast()
   const searchInputSender = useRef(null)
@@ -269,6 +270,7 @@ function ParcelSenderBoard() {
           console.log(e.message)
         } finally {
           setLoadingList(false)
+          setIsChanging(false)
         }
       }
       const cb = (Sender, deliveryman, tokenId) => {
@@ -277,20 +279,18 @@ function ParcelSenderBoard() {
       getDeliveriesList()
       const attributedFilter = fastDeliveryNft.filters.Attributed(web3State.account)
       const deliveredFilter = fastDeliveryNft.filters.Delivered(web3State.account)
-      const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(web3State.account)
-      // ecouter sur l'event Transfer
+      // ecouter sur l'event when status changed
 
       fastDeliveryNft.on(attributedFilter, cb)
       fastDeliveryNft.on(deliveredFilter, cb)
-      fastDeliveryNft.on(inDeliveryFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
         fastDeliveryNft.off(attributedFilter, cb)
         fastDeliveryNft.off(attributedFilter, cb)
-        fastDeliveryNft.off(inDeliveryFilter, cb)
+
       }
     }
-  }, [deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel, web3State.account])
+  }, [setIsChanging, isChanging, deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel, web3State.account])
 
 
   /* unused no fetch for sender
@@ -444,6 +444,8 @@ function ParcelSenderBoard() {
       setRecipientTel("")
       setRecipientMail("")
       setIsRecipientAddress(false)
+      setDeliveriesList([])
+      setIsChanging(true)
     }
   }
 

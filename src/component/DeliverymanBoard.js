@@ -40,6 +40,7 @@ function DeliverymanBoard() {
   const [deliveryCode, setDeliveryCode] = useState("")
   const [displayAddDelivery2, setDisplayAddDelivery2] = useState(false)
   const [selectFilter, setSelectFilter] = useState(ethers.utils.getAddress(web3State.account))
+  const [isChanging, setIsChanging] = useState(false)
 
 
   // get last Nft number id
@@ -83,7 +84,7 @@ function DeliverymanBoard() {
         try {
           let deliveryDateStatus
           let deliveryStatusInfo
-          for (let i = 0; i <= lastDeliveryId; i++) {
+          for (let i = 1; i <= lastDeliveryId; i++) {
             const deliveryInfo = await fastDeliveryNft.DeliveryInfo(i)
             switch (deliveryInfo.status) {
               case 0:
@@ -142,32 +143,29 @@ function DeliverymanBoard() {
               .reverse()
               .unshift(listHeader)
           setDeliveriesList(list)
+          console.log(list, 'List')
         } catch (e) {
           console.log(e)
         } finally {
           setLoadingList(false)
+          setIsChanging(false)
         }
       }
       const cb = (Sender, deliveryman, tokenId) => {
         getAllDeliveries()
       }
       getAllDeliveries()
-      const attributedFilter = fastDeliveryNft.filters.Attributed(null, web3State.account)
-      const deliveredFilter = fastDeliveryNft.filters.Delivered(null, web3State.account)
       const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(null, web3State.account)
       // ecouter sur l'event Transfer
 
-      fastDeliveryNft.on(attributedFilter, cb)
-      fastDeliveryNft.on(deliveredFilter, cb)
+
       fastDeliveryNft.on(inDeliveryFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
-        fastDeliveryNft.off(attributedFilter, cb)
-        fastDeliveryNft.off(attributedFilter, cb)
         fastDeliveryNft.off(inDeliveryFilter, cb)
       }
     }
-  }, [fastDeliveryNft, fastDeliveryUser, lastDeliveryId, web3State.account])
+  }, [fastDeliveryNft, fastDeliveryUser, lastDeliveryId, setIsChanging, web3State.account, isChanging])
 
   const handleClickDisplayDelivery2 = () => {
     setDisplayAddDelivery2(!displayAddDelivery2)
@@ -205,6 +203,7 @@ function DeliverymanBoard() {
     } finally {
       setIsLoading(false)
       setIdSelect2("")
+      setIsChanging(true)
     }
   }
 
@@ -248,6 +247,7 @@ function DeliverymanBoard() {
       setIsLoading(false)
       setIdSelect2("")
       setDeliveryCode("")
+      setIsChanging(true)
     }
   }
 
