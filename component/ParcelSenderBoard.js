@@ -22,12 +22,20 @@ import {
   VStack,
   useToast,
   Input,
-  InputGroup,
-  InputRightElement,
   Spacer,
   HStack,
-  Divider
+  Divider,
+  useDisclosure
 } from '@chakra-ui/react'
+
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+} from "@chakra-ui/react"
 
 import axios from 'axios'
 import { FastDeliveryNftContext } from '../App'
@@ -37,7 +45,8 @@ import { Web3Context } from 'web3-hooks'
 import { useIsMounted } from "../hooks/useIsMounted";
 require('dotenv').config();
 
-function ParcelSenderBoard() {
+function ParcelSenderBoard(props) {
+  const { selectedId, setSelectedId } = props
 
   const DELIVERY_PRICE = {
     _0_2: 1,
@@ -50,6 +59,8 @@ function ParcelSenderBoard() {
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const daidToken = useContext(DaidTokenContext)
   const isMounted = useIsMounted()
+  const { isOpen: isPickUpOpen, onOpen: onPickUpOpen, onClose: onPickUpClose } = useDisclosure()
+  const { isOpen: isDelOpen, onOpen: onDelOpen, onClose: onDelClose } = useDisclosure()
 
   /* unused no fetch for sender
   const [loadingUser, setLoadingUser] = useState(false);
@@ -96,7 +107,6 @@ function ParcelSenderBoard() {
 
   const [deliveryIdSender, setDeliveryIdSender] = useState([])
   const [deliveriesList, setDeliveriesList] = useState([])
-  const [idSelect, setIdSelect] = useState("")
 
   const toast = useToast()
   const searchInputSender = useRef(null)
@@ -160,14 +170,14 @@ function ParcelSenderBoard() {
       }
       getDeliveryId()
       const onLineFilter = fastDeliveryNft.filters.OnLine(web3State.account)
-      const deletedeFilter = fastDeliveryNft.filters.Deleted(web3State.account)
+      const deletedFilter = fastDeliveryNft.filters.Deleted(web3State.account)
       // ecouter sur l'event de FastdeliveryNft
       fastDeliveryNft.on(onLineFilter, cb)
-      fastDeliveryNft.on(deletedeFilter, cb)
+      fastDeliveryNft.on(deletedFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
         fastDeliveryNft.off(onLineFilter, cb)
-        fastDeliveryNft.off(deletedeFilter, cb)
+        fastDeliveryNft.off(deletedFilter, cb)
       }
     }
   }, [fastDeliveryNft, web3State.account])
@@ -275,19 +285,22 @@ function ParcelSenderBoard() {
         getDeliveriesList()
       }
       getDeliveriesList()
+      const onLineFilter = fastDeliveryNft.filters.OnLine(web3State.account)
       const attributedFilter = fastDeliveryNft.filters.Attributed(web3State.account)
-      const deliveredFilter = fastDeliveryNft.filters.Delivered(web3State.account)
       const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(web3State.account)
-      // ecouter sur l'event Transfer
-
+      const deliveredFilter = fastDeliveryNft.filters.Delivered(web3State.account)
+      // ecouter sur l'event when status changed
+      fastDeliveryNft.on(onLineFilter, cb)
+      fastDeliveryNft.on(inDeliveryFilter, cb)
       fastDeliveryNft.on(attributedFilter, cb)
       fastDeliveryNft.on(deliveredFilter, cb)
-      fastDeliveryNft.on(inDeliveryFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
+        fastDeliveryNft.off(onLineFilter, cb)
         fastDeliveryNft.off(attributedFilter, cb)
         fastDeliveryNft.off(attributedFilter, cb)
         fastDeliveryNft.off(inDeliveryFilter, cb)
+
       }
     }
   }, [deliveryIdSender, fastDeliveryNft, fastDeliveryUser, senderAddress, senderAddressInfo, senderFirstName, senderLastName, senderMail, senderTel, web3State.account])
@@ -375,7 +388,6 @@ function ParcelSenderBoard() {
 
   const handleClickDisplayDelivery = () => {
     setDisplayAddDelivery(!displayAddDelivery)
-    setIdSelect("")
   }
 
   // Approve function
@@ -448,7 +460,7 @@ function ParcelSenderBoard() {
   }
 
   // Pick up delivery function
-  const handleClickPickUp = async () => {
+  const handleClickPickUp = async (index) => {
 
     // Randomize deliveryCode and hash
     const random = new Random(); // uses the nativeMath engine
@@ -470,7 +482,7 @@ function ParcelSenderBoard() {
     }
     try {
       setIsLoading(true)
-      let tx = await fastDeliveryNft.collectDelivery(idSelect, deliveryCodeHash)
+      let tx = await fastDeliveryNft.collectDelivery(index, deliveryCodeHash)
       await tx.wait()
       await emailRequest()
       toast({
@@ -494,18 +506,18 @@ function ParcelSenderBoard() {
       console.log(e.message)
     } finally {
       setIsLoading(false)
-      setIdSelect("")
     }
   }
 
-  const handleClickDel = async () => {
+  const handleClickDel = async (index) => {
+    console.log(index)
     try {
       setIsLoading(true)
-      let tx = await fastDeliveryNft.deleteDelivery(Number(idSelect))
+      let tx = await fastDeliveryNft.deleteDelivery(index)
       await tx.wait()
 
       toast({
-        title: `Confirmed transaction : Delivery id ${idSelect} has been deleted`,
+        title: `Confirmed transaction : Delivery id ${index} has been deleted`,
         description: `Transaction hash: ${tx.hash}`,
         status: 'success',
         duration: 5000,
@@ -542,43 +554,8 @@ function ParcelSenderBoard() {
               borderRadius="lg"
               colorScheme="blue"
               onClick={handleClickDisplayDelivery}
-            > {displayAddDelivery ? '> My Deliveries' : '> + Delivery'}</Button>
+            > {displayAddDelivery ? '> My Deliveries' : '> Add Delivery'}</Button>
           </Box>
-          {!displayAddDelivery && (
-            <Box as="form">
-              <FormControl isRequired>
-                <InputGroup>
-                  <Input
-                    w="170px"
-                    type="number"
-                    placeholder="Id"
-                    onChange={(event) => setIdSelect(event.target.value)}
-                    value={idSelect}
-                  />
-                  <InputRightElement w="110px">
-                    <Button
-                      mr="1"
-                      px="1"
-                      size="sm"
-                      borderRadius="lg"
-                      colorScheme="blue"
-                      type="button"
-                      onClick={handleClickPickUp}>
-                      Pick up
-                    </Button>
-                    <Button
-                      size="sm"
-                      borderRadius="lg"
-                      colorScheme="red"
-                      type="button"
-                      onClick={handleClickDel}>
-                      Del
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-              </FormControl>
-            </Box>
-          )}
         </HStack>
         {loadingList &&
           <Text> Loading...</Text>
@@ -591,11 +568,11 @@ function ParcelSenderBoard() {
           !loadingList && deliveryIdSender.length > 0 && !displayAddDelivery && (
             deliveriesList.map((delivery) => {
               return (
-                <Box pt="2" w="100 % " key={delivery.id}>
-                  <Flex wrap="wrap" mt="2" >
+                <Box p="0" w="100 % " key={delivery.id} border={isNaN(delivery.id) ? '1px' : ''}>
+                  < Flex wrap="wrap" mt={isNaN(delivery.id) ? '0' : '2'}>
                     <Box display="flex" alignItems="center" justifyContent="center" bg="gray.200" w="25px" px="1">{delivery.id}</Box>
                     <Box display="flex" mx="1" bg="blue.300">
-                      <Popover trigger="hover" >
+                      <Popover isLazy trigger="hover" >
                         <PopoverTrigger>
                           <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center">
                             {delivery.senderFirstName} {delivery.senderLastName}</Box>
@@ -613,7 +590,7 @@ function ParcelSenderBoard() {
                       </Popover>
                     </Box>
                     <Box display="flex" mx="1" bg="teal.300">
-                      <Popover trigger="hover" >
+                      <Popover isLazy trigger="hover" >
                         <PopoverTrigger>
                           <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
                             {delivery.recipientFirstName} {delivery.recipientLastName}</Box>
@@ -636,7 +613,7 @@ function ParcelSenderBoard() {
                       {delivery.deliveryAmount} (DAID)
                     </Box>
                     <Box display="flex" mx="1" bg="red.300">
-                      <Popover trigger="hover" >
+                      <Popover isLazy trigger="hover" >
                         <PopoverTrigger>
                           <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
                             {delivery.deliverymanCompany}</Box>
@@ -652,7 +629,7 @@ function ParcelSenderBoard() {
                         </PopoverContent>
                       </Popover>
                     </Box>
-                    <Popover trigger="hover" >
+                    <Popover isLazy trigger="hover" >
                       <PopoverTrigger>
                         <Box display="flex" flex="1" alignItems="center" justifyContent="center" bg="orange.200" minW="100x">
                           {delivery.deliveryStatus}
@@ -665,8 +642,89 @@ function ParcelSenderBoard() {
                         <PopoverBody>{delivery.timestamp}</PopoverBody>
                       </PopoverContent>
                     </Popover>
+                    {
+                      delivery.deliveryStatus === "onLine" && (
+                        <>
+                          <Button
+                            pt="1"
+                            mx="1"
+                            px="2"
+                            size="xs"
+                            borderRadius="lg"
+                            colorScheme="red"
+                            type="button"
+                            onClick={() => {
+                              onDelOpen()
+                              setSelectedId(Number(delivery.id))
+                            }
+                            }>X</Button>
+                          <Modal isOpen={isDelOpen} onClose={onDelClose}>
+                            <ModalContent>
+                              <ModalHeader>Delete </ModalHeader>
+                              <ModalCloseButton />
+                              <ModalBody >
+                                <Text>Do you want to confirm the removal of the delivery ID: {(selectedId)}?</Text>
+                              </ModalBody>
+                              <ModalFooter>
+                                <Button colorScheme="blue" mr={3} onClick={onDelClose}>
+                                  Close
+                                </Button>
+                                <Button
+                                  colorScheme="red"
+                                  mr={3}
+                                  onClick={() => {
+                                    onDelClose()
+                                    handleClickDel(selectedId)
+                                  }}
+                                  variant="ghost">Del</Button>
+                              </ModalFooter>
+                            </ModalContent>
+                          </Modal>
+                        </>
+                      )
+                    }
+                    {
+                      delivery.deliveryStatus === "attributed" && (
+                        <>
+                          <Button
+                            mx="1"
+                            px="2"
+                            size="xs"
+                            borderRadius="lg"
+                            colorScheme="blue"
+                            type="button"
+                            onClick={() => {
+                              onPickUpOpen()
+                              setSelectedId(Number(delivery.id))
+                            }
+                            }>Pick up</Button>
+                          <Modal isOpen={isPickUpOpen} onClose={onPickUpClose}>
+                            <ModalContent>
+                              <ModalHeader>Pick up delivery confirmation</ModalHeader>
+                              <ModalCloseButton />
+                              <ModalBody >
+                                <Text>Do you want to confirm the pickup for delivery ID: {(selectedId)}?</Text>
+                              </ModalBody>
+                              <ModalFooter>
+                                <Button colorScheme="blue" mr={3} onClick={onPickUpClose}>
+                                  Close
+                                </Button>
+                                <Button
+                                  colorScheme="blue"
+                                  mr={3}
+                                  onClick={() => {
+                                    onPickUpClose()
+                                    handleClickPickUp(selectedId)
+                                  }}
+                                  variant="ghost">Ok</Button>
+                              </ModalFooter>
+                            </ModalContent>
+                          </Modal>
+                        </>
+                      )
+                    }
                   </Flex>
-                  <Divider />
+                  {!isNaN(delivery.id) && (<Divider />)}
                 </Box>
               )
             })
@@ -863,7 +921,8 @@ function ParcelSenderBoard() {
                     isInvalid={recipientAddress === "" || !isRecipientAddress ? true : false} />
                 </FormControl>
                 {
-                  document.activeElement === searchInputRecipient.current && recipientAddress && !isRecipientAddress && <List as="ul"
+                  document.activeElement === searchInputRecipient.current && recipientAddress && !isRecipientAddress &&
+                  <List as="ul"
                     fontSize="12px"
                     onClick={(event) => { setRecipientAddress(event.target.textContent) }}
                     p="2"

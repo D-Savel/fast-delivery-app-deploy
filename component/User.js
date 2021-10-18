@@ -58,7 +58,7 @@ function User() {
       <Box> {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="blue">{Number(tokenBalance)} DAID</Badge>
         : <Badge borderRadius="lg" mr="1" px="2" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="red">{Number(tokenBalance)} DAID</Badge>}
       </Box>
-    </VStack >
+    </VStack>
   )
 }
 
