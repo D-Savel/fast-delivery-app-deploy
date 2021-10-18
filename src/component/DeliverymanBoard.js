@@ -10,35 +10,44 @@ import {
   HStack,
   Box,
   Flex,
-  FormControl,
   Button,
   Heading,
-  InputGroup,
   Input,
-  InputRightElement,
   useToast,
   Spacer,
-  Divider
+  Divider,
+  useDisclosure
 } from '@chakra-ui/react'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+} from "@chakra-ui/react"
 import { Web3Context } from 'web3-hooks'
 import { FastDeliveryNftContext } from '../App'
 import { FastDeliveryUserContext } from '../App'
 import { ethers, utils } from 'ethers'
 
-function DeliverymanBoard() {
+function DeliverymanBoard(props) {
+  const { selectedId, setSelectedId } = props
   const [web3State] = useContext(Web3Context)
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
   const toast = useToast()
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
 
   const [lastDeliveryId, setLastDeliveryId] = useState()
   const [deliveriesList, setDeliveriesList] = useState([])
   const [loadingList, setLoadingList] = useState(false)
+  // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false)
   const [idSelect2, setIdSelect2] = useState("")
   const [deliveryCode, setDeliveryCode] = useState("")
-  const [displayAddDelivery2, setDisplayAddDelivery2] = useState(false)
+  const [displayAddDeliveryForDeliveryMan, setDisplayAddDeliveryForDeliveryMan] = useState(false)
   const [selectFilter, setSelectFilter] = useState(ethers.utils.getAddress(web3State.account))
   const [isChanging, setIsChanging] = useState(false)
 
@@ -154,35 +163,38 @@ function DeliverymanBoard() {
       const cb = (Sender, deliveryman, tokenId) => {
         getAllDeliveries()
       }
-      getAllDeliveries()
+      if (!isChanging) { getAllDeliveries() }
       const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(null, web3State.account)
+      const attributedFilter = fastDeliveryNft.filters.Attributed(null, web3State.account)
+      const deliveredFilter = fastDeliveryNft.filters.Delivered(null, web3State.account)
       // ecouter sur l'event Transfer
-
-
+      fastDeliveryNft.on(attributedFilter, cb)
+      fastDeliveryNft.on(deliveredFilter, cb)
       fastDeliveryNft.on(inDeliveryFilter, cb)
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
         fastDeliveryNft.off(inDeliveryFilter, cb)
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(deliveredFilter, cb)
       }
     }
   }, [fastDeliveryNft, fastDeliveryUser, lastDeliveryId, setIsChanging, web3State.account, isChanging])
 
-  const handleClickDisplayDelivery2 = () => {
-    setDisplayAddDelivery2(!displayAddDelivery2)
+  const handleClickDisplayDelivery = () => {
+    setDisplayAddDeliveryForDeliveryMan(!displayAddDeliveryForDeliveryMan)
     setIdSelect2("")
     setDeliveryCode("")
     selectFilter === ethers.constants.AddressZero ? setSelectFilter(ethers.utils.getAddress(web3State.account)) : setSelectFilter(ethers.constants.AddressZero)
   }
 
   // add A delivery for deliveryman
-  const handleClickChooseDelivery = async (e) => {
-    e.preventDefault()
+  const handleClickChooseDelivery = async (index) => {
     try {
       setIsLoading(true)
-      let tx = await fastDeliveryNft.attributeDelivery(idSelect2)
+      let tx = await fastDeliveryNft.attributeDelivery(index)
       await tx.wait()
       toast({
-        title: `Confirmed transaction : delivery id ${idSelect2} have been added to your deliveries`,
+        title: `Confirmed transaction : delivery id ${index} have been added to your deliveries`,
         description: `Transaction hash: ${tx.hash}`,
         status: 'success',
         duration: 5000,
@@ -208,15 +220,15 @@ function DeliverymanBoard() {
   }
 
   // confirm a parcel is delivered by deliveryman
-  const handleClickConfirmDelivered = async (e) => {
-    e.preventDefault()
-    const deliveryInfo = await fastDeliveryNft.DeliveryInfo(idSelect2)
+  const handleClickConfirmDelivered = async (index) => {
+    console.log(deliveryCode, 'Delivery code')
+    const deliveryInfo = await fastDeliveryNft.DeliveryInfo(index)
     try {
       setIsLoading(true)
-      let tx = await fastDeliveryNft.delivered(idSelect2, utils.keccak256(utils.toUtf8Bytes(deliveryCode.toString())))
+      let tx = await fastDeliveryNft.delivered(index, utils.keccak256(utils.toUtf8Bytes(deliveryCode.toString())))
       await tx.wait()
       toast({
-        title: `Confirmed transaction : delivering for id ${idSelect2} has been registered \n Delivery id ${idSelect2} is payed`,
+        title: `Confirmed transaction : delivering for id ${index} has been registered \n Delivery id ${index} is payed`,
         description: `Transaction hash: ${tx.hash}`,
         status: 'success',
         duration: 5000,
@@ -284,164 +296,184 @@ function DeliverymanBoard() {
 
   return (
     <>
-      <HStack pl="1" py="2" position="sticky" top="125px" zIndex="sticky" alignItems="center" justifyContent="space-beetween" w="100%">
-        <Heading size="md">{!displayAddDelivery2 === true ? 'Deliveries' : 'Add Delivery'}</Heading>
-        <Spacer />
-        <Flex wrap="wrap" justifyContent="flex-end" alignItems="center">
-          <Box>
-            <Button
-              mr="1"
-              size="sm"
-              type="button"
-              borderRadius="lg"
-              colorScheme="blue"
-              onClick={handleClickDisplayDelivery2}
-            > {displayAddDelivery2 === true ? '> My Deliveries' : '> + Delivery'}</Button>
-          </Box>
-          {displayAddDelivery2 === true && (
-            <Box as="form">
-              <FormControl isRequired>
-                <InputGroup w="90px">
-                  <Input
-                    type="number"
-                    placeholder="Id"
-                    onChange={(event) => setIdSelect2(event.target.value)}
-                    value={idSelect2}
-                  />
-                  <InputRightElement>
-                    <Button
-                      mr="1"
-                      size="sm"
-                      borderRadius="lg"
-                      colorScheme="blue"
-                      type="button"
-                      isLoading={isLoading}
-                      onClick={handleClickChooseDelivery}>
-                      Add
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-              </FormControl>
+      <Box w="100%" px="2" py="2">
+        <HStack pl="1" py="2" position="sticky" top="125px" zIndex="sticky" alignItems="center" justifyContent="space-beetween" w="100%">
+          <Heading size="md">{!displayAddDeliveryForDeliveryMan === true ? 'Deliveries' : 'Add Delivery'}</Heading>
+          <Spacer />
+          <Flex wrap="wrap" justifyContent="flex-end" alignItems="center">
+            <Box>
+              <Button
+                mr="1"
+                size="sm"
+                type="button"
+                borderRadius="lg"
+                colorScheme="blue"
+                onClick={handleClickDisplayDelivery}
+              > {displayAddDeliveryForDeliveryMan === true ? '> My Deliveries' : '> Add Delivery'}</Button>
             </Box>
-          )}
-        </Flex>
-        {!displayAddDelivery2 === true && (
-          <Box as="form" >
-            <FormControl isRequired>
-              <InputGroup w="175px" >
-                <HStack>
-                  <Input
-                    w="85px"
-                    pl="1"
-                    type="number"
-                    placeholder="Code"
-                    onChange={(event) => setDeliveryCode(event.target.value)}
-                    value={deliveryCode}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Id"
-                    onChange={(event) => setIdSelect2(event.target.value)}
-                    value={idSelect2}
-                  />
-                </HStack>
-                <InputRightElement w="70px">
-                  <Button
-                    w="100px"
-                    px="1"
-                    mr="1"
-                    size="sm"
-                    borderRadius="lg"
-                    colorScheme="blue"
-                    type="button"
-                    isLoading={isLoading}
-                    onClick={handleClickConfirmDelivered}>
-                    Delivered
-                  </Button>
-                </InputRightElement>
-              </InputGroup>
-            </FormControl>
-          </Box>
-        )}
-      </HStack>
-      {
-        loadingList &&
-        <Text> Loading...</Text>
-      }
-      {
-        !loadingList && (
-          deliveriesList.filter(
-            elem =>
-              elem.web3AddressDeliveryman === selectFilter ||
-              elem.deliveryStatus === "Status"
-
-          )
-            .map(delivery => {
-              return (
-                <Box pt="2" w="100 % " key={delivery.id}>
-                  <Flex wrap="wrap" mt="2" >
-                    <Box display="flex" alignItems="center" justifyContent="center" bg="gray.200" w="25px" px="1">{delivery.id}</Box>
-                    <Box display="flex" mx="1" bg="blue.300" minW="250px">
-                      <Popover trigger="hover" >
+          </Flex>
+        </HStack>
+        {
+          loadingList &&
+          <Text> Loading...</Text>
+        }
+        {
+          !loadingList && (
+            deliveriesList.filter(
+              elem =>
+                elem.web3AddressDeliveryman === selectFilter ||
+                elem.deliveryStatus === "Status"
+            )
+              .map(delivery => {
+                return (
+                  <Box p="0" w="100 % " key={delivery.id} border={isNaN(delivery.id) ? '1px' : ''}>
+                    < Flex wrap="wrap" mt={isNaN(delivery.id) ? '0' : '2'}>
+                      <Box display="flex" alignItems="center" justifyContent="center" bg="gray.200" w="25px" px="1">{delivery.id}</Box>
+                      <Box display="flex" mx="1" bg="blue.300" minW="250px">
+                        <Popover isLazy trigger="hover" >
+                          <PopoverTrigger>
+                            <Flex mx="1" wrap="wrap" alignItems="center" justifyContent="center" maxW="240px">
+                              {delivery.senderAddress}</Flex>
+                          </PopoverTrigger>
+                          <PopoverContent mx="1">
+                            <PopoverArrow />
+                            <PopoverCloseButton />
+                            <PopoverBody>{delivery.recipientFirstName} {delivery.recipientLastName}</PopoverBody>
+                            <PopoverBody>{delivery.senderAddress}</PopoverBody>
+                            <PopoverBody>{delivery.senderInfo}</PopoverBody>
+                            <PopoverBody>{delivery.senderTel}</PopoverBody>
+                            <PopoverBody>{delivery.senderMail}</PopoverBody>
+                          </PopoverContent>
+                        </Popover>
+                      </Box>
+                      <Box display="flex" mx="1" bg="teal.300" minW="250px">
+                        <Popover isLazy trigger="hover" >
+                          <PopoverTrigger>
+                            <Flex mx="1" wrap="wrap" alignItems="center" justifyContent="center" maxW="240px">
+                              {delivery.recipientAddress}</Flex>
+                          </PopoverTrigger>
+                          <PopoverContent mx="1">
+                            <PopoverArrow />
+                            <PopoverCloseButton />
+                            <PopoverBody>{delivery.recipientFirstName} {delivery.recipientLastName}</PopoverBody>
+                            <PopoverBody>{delivery.recipientAddress}</PopoverBody>
+                            <PopoverBody>{delivery.recipientInfo}</PopoverBody>
+                            <PopoverBody>{delivery.recipientTel}</PopoverBody>
+                            <PopoverBody>{delivery.recipientMail}</PopoverBody>
+                          </PopoverContent>
+                        </Popover>
+                      </Box>
+                      <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="90px">
+                        {!isNaN(delivery.deliveryDistance) ? (Math.round(delivery.deliveryDistance * 100) / 100) : 'D'} (Km)
+                      </Box>
+                      <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="100px" >
+                        {!isNaN(delivery.deliveryAmount) ? (Math.round(delivery.deliveryAmount * 100) / 100) : 'Price'} (DAID)
+                      </Box>
+                      <Popover isLazy trigger="hover" >
                         <PopoverTrigger>
-                          <Flex mx="1" wrap="wrap" alignItems="center" justifyContent="center" maxW="240px">
-                            {delivery.senderAddress}</Flex>
+                          <Box display="flex" flex="1" alignItems="center" justifyContent="center" bg="orange.200" minW="150px">
+                            {delivery.deliveryStatus}
+                          </Box>
                         </PopoverTrigger>
                         <PopoverContent mx="1">
                           <PopoverArrow />
                           <PopoverCloseButton />
-                          <PopoverBody>{delivery.senderFirstName}</PopoverBody>
-                          <PopoverBody>{delivery.senderLastName}</PopoverBody>
-                          <PopoverBody>{delivery.senderAddress}</PopoverBody>
-                          <PopoverBody>{delivery.senderInfo}</PopoverBody>
-                          <PopoverBody>{delivery.senderTel}</PopoverBody>
-                          <PopoverBody>{delivery.senderMail}</PopoverBody>
+                          <PopoverBody>{delivery.deliveryStatus}</PopoverBody>
+                          <PopoverBody>{delivery.timestamp}</PopoverBody>
                         </PopoverContent>
                       </Popover>
-                    </Box>
-                    <Box display="flex" mx="1" bg="teal.300" minW="250px">
-                      <Popover trigger="hover" >
-                        <PopoverTrigger>
-                          <Flex mx="1" wrap="wrap" alignItems="center" justifyContent="center" maxW="240px">
-                            {delivery.recipientAddress}</Flex>
-                        </PopoverTrigger>
-                        <PopoverContent mx="1">
-                          <PopoverArrow />
-                          <PopoverCloseButton />
-                          <PopoverBody>{delivery.recipientFirstName} {delivery.recipientLastName}</PopoverBody>
-                          <PopoverBody>{delivery.recipientAddress}</PopoverBody>
-                          <PopoverBody>{delivery.recipientInfo}</PopoverBody>
-                          <PopoverBody>{delivery.recipientTel}</PopoverBody>
-                          <PopoverBody>{delivery.recipientMail}</PopoverBody>
-                        </PopoverContent>
-                      </Popover>
-                    </Box>
-                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px">
-                      {delivery.deliveryDistance} (Km)
-                    </Box>
-                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px" >
-                      {delivery.deliveryAmount} (DAID)
-                    </Box>
-                    <Popover trigger="hover" >
-                      <PopoverTrigger>
-                        <Box display="flex" flex="1" alignItems="center" justifyContent="center" bg="orange.200" minW="100px">
-                          {delivery.deliveryStatus}
+                      {delivery.deliveryStatus === "onLine" && (
+                        <Box display="flex" mx="1" alignItems="center" justifyContent="center">
+                          <Button
+                            m="1"
+                            p="2"
+                            size="sx"
+                            borderRadius="lg"
+                            colorScheme="blue"
+                            type="button"
+                            onClick={() => {
+                              onOpen()
+                              setSelectedId(Number(delivery.id))
+                            }
+                            }>Add</Button>
+                          <Modal isOpen={isOpen} onClose={onClose}>
+                            <ModalContent>
+                              <ModalHeader>Add delivery confirmation</ModalHeader>
+                              <ModalCloseButton />
+                              <ModalBody >
+                                <Text>Do you want to add delivery : ID {(selectedId)}?</Text>
+                              </ModalBody>
+                              <ModalFooter>
+                                <Button colorScheme="blue" mr={3} onClick={onClose}>
+                                  Close
+                                </Button>
+                                <Button
+                                  colorScheme="blue"
+                                  mr={3}
+                                  onClick={() => {
+                                    onClose()
+                                    handleClickChooseDelivery(selectedId)
+                                  }}
+                                  variant="ghost">Ok</Button>
+                              </ModalFooter>
+                            </ModalContent>
+                          </Modal>
                         </Box>
-                      </PopoverTrigger>
-                      <PopoverContent mx="1">
-                        <PopoverArrow />
-                        <PopoverCloseButton />
-                        <PopoverBody>{delivery.deliveryStatus}</PopoverBody>
-                        <PopoverBody>{delivery.timestamp}</PopoverBody>
-                      </PopoverContent>
-                    </Popover>
-                  </Flex>
-                  <Divider />
-                </Box>
-              )
-            })
-        )
-      }
+                      )}
+                      {delivery.deliveryStatus === "inDelivery" && (
+                        <Box display="flex" mx="1" alignItems="center" justifyContent="center">
+                          <Button
+                            m="1"
+                            p="2"
+                            size="sx"
+                            borderRadius="lg"
+                            colorScheme="orange"
+                            type="button"
+                            onClick={() => {
+                              onOpen()
+                              setSelectedId(Number(delivery.id))
+                            }
+                            }>ID {Number(delivery.id)} delivered</Button>
+                          <Modal isOpen={isOpen} onClose={onClose}>
+                            <ModalContent>
+                              <ModalHeader>Delivery confirmation</ModalHeader>
+                              <ModalCloseButton />
+                              <ModalBody >
+                                <Text>Please enter delivery code for delivery ID: {(selectedId)}</Text>
+                                <Input
+                                  w="85px"
+                                  pl="1"
+                                  type="number"
+                                  placeholder="Code"
+                                  onChange={(event) => setDeliveryCode(event.target.value)}
+                                />
+                              </ModalBody>
+                              <ModalFooter>
+                                <Button colorScheme="blue" mr={3} onClick={onClose}>
+                                  Close
+                                </Button>
+                                <Button
+                                  colorScheme="blue"
+                                  mr={3}
+                                  onClick={() => {
+                                    onClose()
+                                    handleClickConfirmDelivered(selectedId)
+                                  }}
+                                  variant="ghost">Ok</Button>
+                              </ModalFooter>
+                            </ModalContent>
+                          </Modal>
+                        </Box>
+                      )
+                      }
+                    </Flex>
+                    {!isNaN(delivery.id) && (<Divider />)}
+                  </Box>
+                )
+              })
+          )
+        }
+      </Box>
       {
         !loadingList &&
         (deliveriesList.filter(
@@ -450,7 +482,7 @@ function DeliverymanBoard() {
               elem.deliveryStatus === "Status") &&
             elem.deliveryAmount !== 0))
           .length === 1 &&
-        displayAddDelivery2 === true &&
+        displayAddDeliveryForDeliveryMan === true &&
         <Text> There is no deliveries on line</Text>
       }
       {
@@ -459,7 +491,7 @@ function DeliverymanBoard() {
             (elem.web3AddressDeliveryman === selectFilter ||
               elem.deliveryStatus === "Status") &&
             elem.deliveryAmount !== 0))
-          .length < 1 && !displayAddDelivery2 === true &&
+          .length < 1 && !displayAddDeliveryForDeliveryMan === true &&
         <Text> You don't have any delivery registered</Text>
       }
     </>
@@ -467,4 +499,3 @@ function DeliverymanBoard() {
 
 }
 export default DeliverymanBoard
-

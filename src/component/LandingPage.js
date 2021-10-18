@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import CreateUser from './CreateUser'
 import ParcelSenderBoard from './ParcelSenderBoard'
 import DeliverymanBoard from './DeliverymanBoard'
@@ -7,6 +7,7 @@ import { Web3Context } from 'web3-hooks'
 
 function LandingPage(props) {
   const { userAddress, setUserAddress, userProfil, setUserProfil } = props
+  const [selectedId, setSelectedId] = useState()
   const [web3State] = useContext(Web3Context)
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
 
@@ -28,8 +29,8 @@ function LandingPage(props) {
 
   return (
     <>
-      {userProfil === 'parcelSender' && (<ParcelSenderBoard />)}
-      {userProfil === 'deliveryman' && (<DeliverymanBoard />)}
+      {userProfil === 'parcelSender' && (<ParcelSenderBoard selectedId={selectedId} setSelectedId={setSelectedId} />)}
+      {userProfil === 'deliveryman' && (<DeliverymanBoard selectedId={selectedId} setSelectedId={setSelectedId} />)}
       {userProfil === '0' && (<CreateUser userAddress={userAddress} setUserAddress={setUserAddress} userProfil={userProfil} setUserProfil={setUserProfil} />)}
     </>
   )

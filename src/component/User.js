@@ -1,4 +1,4 @@
-useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import {
   Badge,
   Box,
