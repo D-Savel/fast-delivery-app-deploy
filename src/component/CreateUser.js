@@ -19,14 +19,12 @@ import {
 import axios from 'axios'
 import { FastDeliveryUserContext } from '../App'
 import { Web3Context } from 'web3-hooks'
-import { useIsMounted } from "../hooks/useIsMounted";
 require('dotenv').config();
 
 function CreateUser(props) {
   const { userAddress, setUserAddress, userProfil, setUserProfil } = props
   const [web3State] = useContext(Web3Context)
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
-  const isMounted = useIsMounted()
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isAdress, setIsAddress] = useState(true);
@@ -44,14 +42,14 @@ function CreateUser(props) {
   const toast = useToast()
 
   useEffect(() => {
+    const { cancel, token } = axios.CancelToken.source();
     const urlServer = process.env.REACT_APP_URL_SERVER
-    console.log(urlServer, 'UrlServer')
     let fetchUrl = `${urlServer}/address/?address=${userAddress}`
-    console.log(fetchUrl, 'url user search')
+    console.log(fetchUrl, 'Create user search')
     const request = async () => {
       setLoading(true)
       try {
-        let response = await axios.get(fetchUrl)
+        let response = await axios.get(fetchUrl, token)
         setSearchResults(response.data)
         if (response.data.length) {
           userAddress.toUpperCase().trim().localeCompare(response.data[0].adresse.trim()) === 0 ? setIsAddress(true) : setIsAddress(false)
@@ -67,10 +65,10 @@ function CreateUser(props) {
         }
       }
     }
-    request()
+    const timeOutId = setTimeout(() => request(), 500)
+    return () => cancel("No longer latest query") || clearTimeout(timeOutId);
+  }, [userAddress])
 
-  }
-    , [isMounted, userAddress])
 
   const handleClickRegister = async (e) => {
     e.preventDefault()

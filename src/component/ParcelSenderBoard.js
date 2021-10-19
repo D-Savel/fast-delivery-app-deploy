@@ -42,7 +42,6 @@ import { FastDeliveryNftContext } from '../App'
 import { FastDeliveryUserContext } from '../App'
 import { DaidTokenContext } from '../App'
 import { Web3Context } from 'web3-hooks'
-import { useIsMounted } from "../hooks/useIsMounted";
 require('dotenv').config();
 
 function ParcelSenderBoard(props) {
@@ -58,7 +57,6 @@ function ParcelSenderBoard(props) {
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const daidToken = useContext(DaidTokenContext)
-  const isMounted = useIsMounted()
   const { isOpen: isPickUpOpen, onOpen: onPickUpOpen, onClose: onPickUpClose } = useDisclosure()
   const { isOpen: isDelOpen, onOpen: onDelOpen, onClose: onDelClose } = useDisclosure()
 
@@ -357,16 +355,16 @@ function ParcelSenderBoard(props) {
 
   // fetch address for recipient input
   useEffect(() => {
+    const { cancel, token } = axios.CancelToken.source();
     const urlServer = process.env.REACT_APP_URL_SERVER
-    console.log(urlServer, 'UrlServer')
     let fetchUrl = `${urlServer}/address/?address=${recipientAddress}`
-    console.log(fetchUrl, 'url recipient search')
+    console.log(fetchUrl, 'Add recipient search')
     const request = async () => {
       setLoadingRecipient(true)
       try {
-        let response = await axios.get(fetchUrl)
+        let response = await axios.get(fetchUrl, token)
         setSearchResultsRecipient(response.data)
-        if (response.data.length & isMounted.current) {
+        if (response.data.length) {
           recipientAddress.toUpperCase().trim().localeCompare(response.data[0].adresse.trim()) === 0 ? setIsRecipientAddress(true) : setIsRecipientAddress(false)
           setRecipientAddressX(response.data[0].lon.toString())
           setRecipientAddressY(response.data[0].lat.toString())
@@ -380,10 +378,9 @@ function ParcelSenderBoard(props) {
         }
       }
     }
-    request()
-
-  }
-    , [isMounted, recipientAddress])
+    const timeOutId = setTimeout(() => request(), 500)
+    return () => cancel("No longer latest query") || clearTimeout(timeOutId);
+  }, [recipientAddress])
 
 
   const handleClickDisplayDelivery = () => {
