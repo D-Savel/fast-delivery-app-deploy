@@ -147,7 +147,7 @@ const DeliverymanDelivery = (props) => {
           </PopoverContent>
         </Popover>
       </Box>
-      <Box display="flex" me="1" alignItems="center" justifyContent="center" minW="90px">
+      <Box display="flex" me="1" borderRight="1px" alignItems="center" justifyContent="center" minW="90px">
         {!isNaN(delivery.deliveryDistance) ? (Math.round(delivery.deliveryDistance * 100) / 100) : 'D'} (Km)
       </Box>
       <Box display="flex" me="1" alignItems="center" justifyContent="center" minW="100px" >
