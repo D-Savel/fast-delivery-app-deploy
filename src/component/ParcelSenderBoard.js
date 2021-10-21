@@ -1,15 +1,9 @@
 import { useRef, useContext, useState, useEffect } from 'react'
 import { FastDeliveryNftAddress } from '../contracts/FastDeliveryNft'
+import ParcelSenderDelivery from './ParcelSenderDelivery';
 import { getDistance } from 'ol/sphere';
-import { utils, ethers } from 'ethers'
-import { Random } from 'random-js'
+import { ethers } from 'ethers'
 import {
-  Popover,
-  PopoverTrigger,
-  PopoverBody,
-  PopoverArrow,
-  PopoverCloseButton,
-  PopoverContent,
   Text,
   Box,
   Flex,
@@ -24,18 +18,7 @@ import {
   Input,
   Spacer,
   HStack,
-  Divider,
-  useDisclosure
 } from '@chakra-ui/react'
-
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-} from "@chakra-ui/react"
 
 import axios from 'axios'
 import { FastDeliveryNftContext } from '../App'
@@ -57,8 +40,6 @@ function ParcelSenderBoard(props) {
   const fastDeliveryUser = useContext(FastDeliveryUserContext)
   const fastDeliveryNft = useContext(FastDeliveryNftContext)
   const daidToken = useContext(DaidTokenContext)
-  const { isOpen: isPickUpOpen, onOpen: onPickUpOpen, onClose: onPickUpClose } = useDisclosure()
-  const { isOpen: isDelOpen, onOpen: onDelOpen, onClose: onDelClose } = useDisclosure()
 
   /* unused no fetch for sender
   const [loadingUser, setLoadingUser] = useState(false);
@@ -113,6 +94,7 @@ function ParcelSenderBoard(props) {
 
   // verify allowance amount for user
   useEffect(() => {
+    console.log("useEffect allowance vérification")
     if (daidToken) {
       const getAllowance = async () => {
         try {
@@ -133,6 +115,7 @@ function ParcelSenderBoard(props) {
 
   // fetch User Info
   useEffect(() => {
+    console.log("useEffect fetch user info")
     if (fastDeliveryUser) {
       const getUserInfo = async () => {
         try {
@@ -154,10 +137,12 @@ function ParcelSenderBoard(props) {
 
   // fetch all delivery id for user
   useEffect(() => {
+    console.log("fetch deliveries id for a user")
     if (fastDeliveryNft) {
       const getDeliveryId = async () => {
         try {
           const id = await fastDeliveryNft.getDeliveriesIdByAddress(web3State.account)
+          console.log(id, "list id for user")
           setDeliveryIdSender(id.filter(index => Number(index) !== 0))
         } catch (e) {
           console.log(e.message)
@@ -182,6 +167,8 @@ function ParcelSenderBoard(props) {
 
   // fetch deliveries an create an array of deliveries for user
   useEffect(() => {
+    console.log(deliveryIdSender, "Delivery Id sender")
+    console.log("useEffect : Create deliveries Array")
     const deliveryStatusEnum = {
       0: "onLine",
       1: "attributed",
@@ -201,9 +188,10 @@ function ParcelSenderBoard(props) {
       timestamp: "Date"
     }
     if (fastDeliveryNft) {
+      list = []
       const getDeliveriesList = async () => {
-        setLoadingList(true)
         try {
+          setLoadingList(true)
           for (let id of deliveryIdSender) {
             let idNumber = Number(id)
             let DeliveryDateStatus
@@ -241,7 +229,7 @@ function ParcelSenderBoard(props) {
             } else {
               deliverymanInfo = { lastName: "-" }
             }
-            const deliveries = {
+            const delivery = {
               id: idNumber,
               senderFirstName: senderFirstName,
               senderLastName: senderLastName,
@@ -266,13 +254,14 @@ function ParcelSenderBoard(props) {
               timestamp: ("0" + DeliveryDateStatus.getDate()).slice(-2) + "-" + ("0" + (DeliveryDateStatus.getMonth() + 1)).slice(-2) + "-" +
                 DeliveryDateStatus.getFullYear() + " " + ("0" + DeliveryDateStatus.getHours()).slice(-2) + ":" + ("0" + DeliveryDateStatus.getMinutes()).slice(-2)
             }
-            list.push(deliveries)
+            list.push(delivery)
           }
           if (list.length > 0)
             list
               .reverse()
               .unshift(listHeader)
           setDeliveriesList(list)
+          console.log("useEffect : Set deliveries Array")
         } catch (e) {
           console.log(e.message)
         } finally {
@@ -280,9 +269,12 @@ function ParcelSenderBoard(props) {
         }
       }
       const cb = (Sender, deliveryman, tokenId) => {
+        console.log("Event : Set deliveries Array")
+        list = []
         getDeliveriesList()
       }
       getDeliveriesList()
+
       const onLineFilter = fastDeliveryNft.filters.OnLine(web3State.account)
       const attributedFilter = fastDeliveryNft.filters.Attributed(web3State.account)
       const inDeliveryFilter = fastDeliveryNft.filters.InDelivery(web3State.account)
@@ -295,9 +287,9 @@ function ParcelSenderBoard(props) {
       return () => {
         // arreter d'ecouter lorsque le component sera unmount
         fastDeliveryNft.off(onLineFilter, cb)
-        fastDeliveryNft.off(attributedFilter, cb)
-        fastDeliveryNft.off(attributedFilter, cb)
         fastDeliveryNft.off(inDeliveryFilter, cb)
+        fastDeliveryNft.off(attributedFilter, cb)
+        fastDeliveryNft.off(deliveredFilter, cb)
 
       }
     }
@@ -333,6 +325,7 @@ function ParcelSenderBoard(props) {
 
   // Calculate distance and price for delivery with delivery distance
   useEffect(() => {
+    console.log("useEffect calculate distance and fix price for delivery ")
     if (isRecipientAddress) {
       setDeliveryDistance((Math.round((getDistance([senderAddressX, senderAddressY], [recipientAddressX, recipientAddressY]))) / 1000))
     }
@@ -355,6 +348,7 @@ function ParcelSenderBoard(props) {
 
   // fetch address for recipient input
   useEffect(() => {
+    console.log("useEffect fetch address for recipient")
     const { cancel, token } = axios.CancelToken.source();
     const urlServer = process.env.REACT_APP_URL_SERVER
     let fetchUrl = `${urlServer}/address/?address=${recipientAddress}`
@@ -456,87 +450,6 @@ function ParcelSenderBoard(props) {
     }
   }
 
-  // Pick up delivery function
-  const handleClickPickUp = async (index) => {
-
-    // Randomize deliveryCode and hash
-    const random = new Random(); // uses the nativeMath engine
-    const deliveryCode = random.integer(1000, 9999)
-    let deliveryCodeHash = utils.keccak256(utils.toUtf8Bytes(deliveryCode.toString()))
-
-    // email request
-    const emailRequest = async () => {
-      let urlServer = process.env.REACT_APP_URL_SERVER
-      let email = "dad.savel@gmail.com"
-      let message = `${senderFirstName} ${senderLastName} send you a parcel\n The delivery code for retreiving parcel is : ${deliveryCode}`
-      const response = await axios.post(`${urlServer}/access`, { email: email, message: message })
-      if (response.status === 'success') {
-        alert("Message Sent.");
-        this.resetForm()
-      } else if (response.status === 'fail') {
-        alert("Message failed to send.")
-      }
-    }
-    try {
-      setIsLoading(true)
-      let tx = await fastDeliveryNft.collectDelivery(index, deliveryCodeHash)
-      await tx.wait()
-      await emailRequest()
-      toast({
-        title: 'Confirmed transaction : Pick up Delivery has been confirmed \nInfo email send to Recipient with delivery code',
-        description: `Transaction hash: ${tx.hash}`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      })
-    } catch (e) {
-      if (e.code) {
-        console.log(e)
-        toast({
-          title: 'Transaction denied',
-          description: e.message,
-          status: 'error',
-          duration: 9000,
-          isClosable: true,
-        })
-      }
-      console.log(e.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleClickDel = async (index) => {
-    console.log(index)
-    try {
-      setIsLoading(true)
-      let tx = await fastDeliveryNft.deleteDelivery(index)
-      await tx.wait()
-
-      toast({
-        title: `Confirmed transaction : Delivery id ${index} has been deleted`,
-        description: `Transaction hash: ${tx.hash}`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      })
-    } catch (e) {
-      if (e.code) {
-        toast({
-          title: 'Transaction denied',
-          description: e.message,
-          status: 'error',
-          duration: 9000,
-          isClosable: true,
-        })
-      }
-      console.log(e.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-
   return (
     <>
       <Box w="100%" px="2" py="2">
@@ -565,163 +478,10 @@ function ParcelSenderBoard(props) {
           !loadingList && deliveryIdSender.length > 0 && !displayAddDelivery && (
             deliveriesList.map((delivery) => {
               return (
-                <Box p="0" w="100 % " key={delivery.id} border={isNaN(delivery.id) ? '1px' : ''}>
-                  < Flex wrap="wrap" mt={isNaN(delivery.id) ? '0' : '2'}>
-                    <Box display="flex" alignItems="center" justifyContent="center" bg="gray.200" w="25px" px="1">{delivery.id}</Box>
-                    <Box display="flex" mx="1" bg="blue.300">
-                      <Popover isLazy trigger="hover" >
-                        <PopoverTrigger>
-                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center">
-                            {delivery.senderFirstName} {delivery.senderLastName}</Box>
-                        </PopoverTrigger>
-                        <PopoverContent mx="1">
-                          <PopoverArrow />
-                          <PopoverCloseButton />
-                          <PopoverBody>{delivery.senderFirstName}</PopoverBody>
-                          <PopoverBody>{delivery.senderLastName}</PopoverBody>
-                          <PopoverBody>{delivery.senderAddress}</PopoverBody>
-                          <PopoverBody>{delivery.senderInfo}</PopoverBody>
-                          <PopoverBody>{delivery.senderTel}</PopoverBody>
-                          <PopoverBody>{delivery.senderMail}</PopoverBody>
-                        </PopoverContent>
-                      </Popover>
-                    </Box>
-                    <Box display="flex" mx="1" bg="teal.300">
-                      <Popover isLazy trigger="hover" >
-                        <PopoverTrigger>
-                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
-                            {delivery.recipientFirstName} {delivery.recipientLastName}</Box>
-                        </PopoverTrigger>
-                        <PopoverContent mx="1">
-                          <PopoverArrow />
-                          <PopoverCloseButton />
-                          <PopoverBody>{delivery.recipientFirstName} {delivery.recipientLastName}</PopoverBody>
-                          <PopoverBody>{delivery.recipientAddress}</PopoverBody>
-                          <PopoverBody>{delivery.recipientInfo}</PopoverBody>
-                          <PopoverBody>{delivery.recipientTel}</PopoverBody>
-                          <PopoverBody>{delivery.recipientMail}</PopoverBody>
-                        </PopoverContent>
-                      </Popover>
-                    </Box>
-                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px">
-                      {delivery.deliveryDistance} (Km)
-                    </Box>
-                    <Box display="flex" mx="1" alignItems="center" justifyContent="center" minW="110px" >
-                      {delivery.deliveryAmount} (DAID)
-                    </Box>
-                    <Box display="flex" mx="1" bg="red.300">
-                      <Popover isLazy trigger="hover" >
-                        <PopoverTrigger>
-                          <Box display="flex" flex="1" alignItems="center" minW="155px" justifyContent="center" h="100%">
-                            {delivery.deliverymanCompany}</Box>
-                        </PopoverTrigger>
-                        <PopoverContent mx="1">
-                          <PopoverArrow />
-                          <PopoverCloseButton />
-                          <PopoverBody>{delivery.deliverymanCompany === "-" ? "Delivery not Attributed" : delivery.deliverymanCompany}</PopoverBody>
-                          <PopoverBody>M. {delivery.deliverymanManagerName}</PopoverBody>
-                          <PopoverBody>{delivery.deliverymanAddress}</PopoverBody>
-                          <PopoverBody>{delivery.deliverymanTel}</PopoverBody>
-                          <PopoverBody>{delivery.deliverymanMail}</PopoverBody>
-                        </PopoverContent>
-                      </Popover>
-                    </Box>
-                    <Popover isLazy trigger="hover" >
-                      <PopoverTrigger>
-                        <Box display="flex" flex="1" alignItems="center" justifyContent="center" bg="orange.200" minW="100x">
-                          {delivery.deliveryStatus}
-                        </Box>
-                      </PopoverTrigger>
-                      <PopoverContent mx="1">
-                        <PopoverArrow />
-                        <PopoverCloseButton />
-                        <PopoverBody>{delivery.deliveryStatus}</PopoverBody>
-                        <PopoverBody>{delivery.timestamp}</PopoverBody>
-                      </PopoverContent>
-                    </Popover>
-                    {
-                      delivery.deliveryStatus === "onLine" && (
-                        <>
-                          <Button
-                            pt="1"
-                            mx="1"
-                            px="2"
-                            size="xs"
-                            borderRadius="lg"
-                            colorScheme="red"
-                            type="button"
-                            onClick={() => {
-                              onDelOpen()
-                              setSelectedId(Number(delivery.id))
-                            }
-                            }>X</Button>
-                          <Modal isOpen={isDelOpen} onClose={onDelClose}>
-                            <ModalContent>
-                              <ModalHeader>Delete </ModalHeader>
-                              <ModalCloseButton />
-                              <ModalBody >
-                                <Text>Do you want to confirm the removal of the delivery ID: {(selectedId)}?</Text>
-                              </ModalBody>
-                              <ModalFooter>
-                                <Button colorScheme="blue" mr={3} onClick={onDelClose}>
-                                  Close
-                                </Button>
-                                <Button
-                                  colorScheme="red"
-                                  mr={3}
-                                  onClick={() => {
-                                    onDelClose()
-                                    handleClickDel(selectedId)
-                                  }}
-                                  variant="ghost">Del</Button>
-                              </ModalFooter>
-                            </ModalContent>
-                          </Modal>
-                        </>
-                      )
-                    }
-                    {
-                      delivery.deliveryStatus === "attributed" && (
-                        <>
-                          <Button
-                            mx="1"
-                            px="2"
-                            size="xs"
-                            borderRadius="lg"
-                            colorScheme="blue"
-                            type="button"
-                            onClick={() => {
-                              onPickUpOpen()
-                              setSelectedId(Number(delivery.id))
-                            }
-                            }>Pick up</Button>
-                          <Modal isOpen={isPickUpOpen} onClose={onPickUpClose}>
-                            <ModalContent>
-                              <ModalHeader>Pick up delivery confirmation</ModalHeader>
-                              <ModalCloseButton />
-                              <ModalBody >
-                                <Text>Do you want to confirm the pickup for delivery ID: {(selectedId)}?</Text>
-                              </ModalBody>
-                              <ModalFooter>
-                                <Button colorScheme="blue" mr={3} onClick={onPickUpClose}>
-                                  Close
-                                </Button>
-                                <Button
-                                  colorScheme="blue"
-                                  mr={3}
-                                  onClick={() => {
-                                    onPickUpClose()
-                                    handleClickPickUp(selectedId)
-                                  }}
-                                  variant="ghost">Ok</Button>
-                              </ModalFooter>
-                            </ModalContent>
-                          </Modal>
-                        </>
-                      )
-                    }
-                  </Flex>
-                  {!isNaN(delivery.id) && (<Divider />)}
+                <Box p="0" m="0" mt="2" w="100% " key={delivery.id} border="1px">
+                  <ParcelSenderDelivery delivery={delivery} senderFirstName={senderFirstName}
+                    senderLastName={senderLastName} selectedId={selectedId}
+                    setSelectedId={setSelectedId} />
                 </Box>
               )
             })

@@ -51,8 +51,8 @@ function User() {
   return (
     <VStack py="1" alignItems="end">
       <Box>
-        {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pr="1" pt="1" variant="solid" colorScheme="blue">{roundedEtherBalance} ETH</Badge>
-          : <Badge borderRadius="lg" fontSize="14" mb="1" px="2" pt="1" variant="solid" colorScheme="red">{roundedEtherBalance} ETH</Badge>}
+        {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pr="1" pt="1" variant="solid" colorScheme="blue">{roundedEtherBalance} Eth</Badge>
+          : <Badge borderRadius="lg" fontSize="14" mb="1" px="2" pt="1" variant="solid" colorScheme="red">{roundedEtherBalance} Eth</Badge>}
       </Box>
       <Spacer />
       <Box> {web3State.provider ? <Badge borderRadius="lg" fontSize="14" mb="1" pt="1" variant="solid" colorScheme="blue">{Number(tokenBalance)} DAID</Badge>
