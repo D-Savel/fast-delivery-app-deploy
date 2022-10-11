@@ -1,4 +1,4 @@
-export const FaucetAddress = '0xf6977087EE2560d2Df84DEB7F0Cc79c579aaE7C1'
+export const FaucetAddress = '0xe6300dfDbC1199A8cA704851ec5a294b2988898c'
 
 export const FaucetAbi = [
   {
