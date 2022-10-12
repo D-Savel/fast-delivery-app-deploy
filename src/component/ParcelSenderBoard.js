@@ -479,9 +479,12 @@ function ParcelSenderBoard(props) {
             deliveriesList.map((delivery) => {
               return (
                 <Box p="0" m="0" mt="2" w="100% " key={delivery.id} border="1px">
-                  <ParcelSenderDelivery delivery={delivery} senderFirstName={senderFirstName}
-                    senderLastName={senderLastName} selectedId={selectedId}
-                    setSelectedId={setSelectedId} />
+                  <ParcelSenderDelivery
+                  delivery={delivery}
+                  senderFirstName={senderFirstName}
+                  senderLastName={senderLastName}
+                  selectedId={selectedId}
+                  setSelectedId={setSelectedId}/>
                 </Box>
               )
             })

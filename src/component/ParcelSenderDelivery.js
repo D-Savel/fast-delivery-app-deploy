@@ -54,7 +54,7 @@ const ParcelSenderDelivery = (props) => {
     // email request
     const emailRequest = async () => {
       let urlServer = process.env.REACT_APP_URL_SERVER
-      let email = "dad.savel@gmail.com"
+      let email = delivery.recipientMail
       let message = `${senderFirstName} ${senderLastName} send you a parcel\n The delivery code for retreiving parcel is : ${deliveryCode}`
       const response = await axios.post(`${urlServer}/access`, { email: email, message: message })
       if (response.status === 'success') {
